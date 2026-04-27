@@ -1,26 +1,69 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --bg: #07090f;
+  --panel: #0f1724;
+  --cyan: #00f5ff;
+  --pink: #ff00b8;
+  --amber: #ffb300;
+  --text: #e8f7ff;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html,
+body {
+  margin: 0;
+  padding: 0;
+  min-height: 100%;
+  background:
+    radial-gradient(circle at top right, #12203a 0%, transparent 30%),
+    radial-gradient(circle at bottom left, #240b2d 0%, transparent 35%),
+    var(--bg);
+  color: var(--text);
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+button {
+  cursor: pointer;
+}
+
+.neon-border {
+  border: 1px solid rgba(0, 245, 255, 0.45);
+  box-shadow:
+    0 0 10px rgba(0, 245, 255, 0.18),
+    inset 0 0 8px rgba(0, 245, 255, 0.08);
+}
+
+.neon-pink {
+  box-shadow: 0 0 12px rgba(255, 0, 184, 0.22);
+}
+
+.panel {
+  background: rgba(15, 23, 36, 0.72);
+  backdrop-filter: blur(10px);
+}
+
+.scanlines::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(
+    transparent 0%,
+    rgba(255, 255, 255, 0.02) 50%,
+    transparent 100%
+  );
+  background-size: 100% 4px;
+}
+
+.glow-text {
+  text-shadow:
+    0 0 8px rgba(0, 245, 255, 0.55),
+    0 0 18px rgba(0, 245, 255, 0.28);
 }
