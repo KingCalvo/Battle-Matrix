@@ -14,15 +14,15 @@ export default function Home() {
           animate={{ opacity: 1, y: 0 }}
           className="text-5xl md:text-7xl font-black glow-text"
         >
-          TIC TAC TOE
+          BATTLE MATRIX
         </motion.h1>
 
         <p className="mt-4 text-cyan-300 tracking-[.35em] text-sm md:text-base">
-          NEON DISTRICT 2077
+          Night City 2077
         </p>
 
         <p className="mt-6 text-gray-300">
-          Entra en la arena. Elige tu unidad cibernética.
+          Entra en la arena y elige tu unidad cibernética.
         </p>
 
         <button
