@@ -1,9 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { characters } from "@/data/characters";
 import useGameStore from "@/store/useGameStore";
+import useSound from "use-sound";
+import { HiSpeakerWave, HiSpeakerXMark } from "react-icons/hi2";
 
 export default function SelectPage() {
   const router = useRouter();
@@ -20,7 +22,42 @@ export default function SelectPage() {
 
   const [activePlayer, setActivePlayer] = useState(1);
 
+  const [musicOn, setMusicOn] = useState(true);
+
+  const [playHover] = useSound("/sounds/PersonajeHover.wav", {
+    volume: 0.09,
+  });
+
+  const [playSelect] = useSound("/sounds/PersonajeSelect.wav", {
+    volume: 0.2,
+  });
+
+  const [playBtn] = useSound("/sounds/btnSound-3.wav", {
+    volume: 0.35,
+  });
+
+  const [playArena] = useSound("/sounds/btnSound-3.wav", {
+    volume: 0.3,
+  });
+
+  const [playMusic, { stop }] = useSound("/sounds/OTS-Select.mp3", {
+    volume: 0.2,
+    loop: true,
+  });
+
+  useEffect(() => {
+    if (musicOn) {
+      playMusic();
+    } else {
+      stop();
+    }
+
+    return () => stop();
+  }, [musicOn, playMusic, stop]);
+
   const handleSelect = (char) => {
+    playSelect();
+
     if (activePlayer === 1) {
       if (player2?.id === char.id) return;
       setPlayer1(char);
@@ -41,7 +78,7 @@ export default function SelectPage() {
 
     return (
       <div
-        className={`panel rounded-3xl p-6 border ${activeColor} self-center`}
+        className={`panel rounded-3xl p-6 border transition-all duration-300 hover:scale-[1.02] ${activeColor} self-center`}
       >
         <p className="tracking-[.3em] text-xs opacity-70 text-center">
           PLAYER {num}
@@ -66,7 +103,10 @@ export default function SelectPage() {
         </div>
 
         <button
-          onClick={() => setActivePlayer(num)}
+          onClick={() => {
+            playBtn();
+            setActivePlayer(num);
+          }}
           className={`mt-6 w-full py-3 rounded-2xl font-bold transition hover:scale-[1.02]
         ${num === 1 ? "bg-cyan-400 text-black" : "bg-pink-500 text-white"}`}
         >
@@ -84,19 +124,38 @@ export default function SelectPage() {
         </h1>
 
         {/* Rondas */}
-        <div className="mt-6 text-center">
-          <p className="mb-3 opacity-70">EL MEJOR DE:</p>
+        <div className="mt-6 flex flex-col items-center gap-4">
+          <div className="flex items-center gap-3">
+            <p className="tracking-[.25em] text-sm text-cyan-300">
+              ⚔ MATCH RULES
+            </p>
+
+            <button
+              onClick={() => setMusicOn(!musicOn)}
+              className="p-2 rounded-xl bg-white/5 hover:bg-white/10 transition"
+            >
+              {musicOn ? (
+                <HiSpeakerWave className="text-xl text-cyan-300" />
+              ) : (
+                <HiSpeakerXMark className="text-xl text-pink-400" />
+              )}
+            </button>
+          </div>
 
           <div className="flex justify-center gap-3 flex-wrap">
             {[1, 3, 5, 7].map((num) => (
               <button
                 key={num}
-                onClick={() => setWinsToVictory(num)}
-                className={`px-5 py-2 rounded-xl font-bold ${
-                  winsToVictory === num
-                    ? "bg-cyan-400 text-black"
-                    : "bg-white/5"
-                }`}
+                onClick={() => {
+                  playBtn();
+                  setWinsToVictory(num);
+                }}
+                className={`min-w-[56px] py-3 rounded-2xl font-black transition-all
+        ${
+          winsToVictory === num
+            ? "bg-cyan-400 text-black scale-110 shadow-[0_0_16px_rgba(0,245,255,.35)]"
+            : "bg-white/5 hover:bg-white/10"
+        }`}
               >
                 {num}
               </button>
@@ -115,7 +174,7 @@ export default function SelectPage() {
           )}
 
           {/* Grid de personajes */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-8 gap-4 content-start">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 content-start max-h-[720px] overflow-y-auto pr-2 p-2 custom-scroll">
             {characters.map((char) => {
               const Icon = char.icon;
 
@@ -128,14 +187,31 @@ export default function SelectPage() {
                   key={char.id}
                   disabled={blocked}
                   onClick={() => handleSelect(char)}
-                  className={`rounded-2xl p-4 border min-h-[115px] transition ${
+                  onMouseEnter={() => !blocked && playHover()}
+                  className={`rounded-2xl p-4 border min-h-[115px] transition-all duration-200 hover:z-20 relative z-0
+                  ${
                     blocked
-                      ? "opacity-25 border-gray-700"
-                      : activePlayer === 1
-                        ? "border-cyan-400 hover:bg-cyan-400/10 hover:scale-105"
-                        : "border-pink-500 hover:bg-pink-500/10 hover:scale-105"
+                      ? "opacity-20 border-gray-700 grayscale"
+                      : player1?.id === char.id
+                        ? "border-cyan-400 bg-cyan-400/10 shadow-[0_0_18px_rgba(0,245,255,.35)] scale-105"
+                        : player2?.id === char.id
+                          ? "border-pink-500 bg-pink-500/10 shadow-[0_0_18px_rgba(255,0,184,.35)] scale-105"
+                          : activePlayer === 1
+                            ? "border-cyan-400 hover:bg-cyan-400/10 hover:scale-105 hover:shadow-[0_0_14px_rgba(0,245,255,.18)]"
+                            : "border-pink-500 hover:bg-pink-500/10 hover:scale-105 hover:shadow-[0_0_14px_rgba(255,0,184,.18)]"
                   }`}
                 >
+                  {player1?.id === char.id && (
+                    <span className="absolute top-2 left-2 text-[10px] font-bold text-cyan-300">
+                      P1
+                    </span>
+                  )}
+
+                  {player2?.id === char.id && (
+                    <span className="absolute top-2 right-2 text-[10px] font-bold text-pink-400">
+                      P2
+                    </span>
+                  )}
                   <Icon className="text-5xl mx-auto" />
                   <p className="mt-3 text-xs">{char.name}</p>
                 </button>
@@ -154,7 +230,10 @@ export default function SelectPage() {
         </div>
 
         <button
-          onClick={startBattle}
+          onClick={() => {
+            playArena();
+            startBattle();
+          }}
           disabled={!player1 || !player2}
           className="mt-8 w-full py-4 rounded-2xl font-black bg-cyan-400 text-black disabled:opacity-40"
         >
