@@ -6,6 +6,7 @@ import { characters } from "@/data/characters";
 import useGameStore from "@/store/useGameStore";
 import useSound from "use-sound";
 import { HiSpeakerWave, HiSpeakerXMark } from "react-icons/hi2";
+import { Howler, Howl } from "howler";
 
 export default function SelectPage() {
   const router = useRouter();
@@ -52,7 +53,9 @@ export default function SelectPage() {
       stop();
     }
 
-    return () => stop();
+    return () => {
+      setTimeout(() => stop(), 400);
+    };
   }, [musicOn, playMusic, stop]);
 
   const handleSelect = (char) => {
@@ -137,7 +140,7 @@ export default function SelectPage() {
               {musicOn ? (
                 <HiSpeakerWave className="text-xl text-cyan-300" />
               ) : (
-                <HiSpeakerXMark className="text-xl text-pink-400" />
+                <HiSpeakerXMark className="text-xl text-red-500" />
               )}
             </button>
           </div>
@@ -195,10 +198,10 @@ export default function SelectPage() {
                       : player1?.id === char.id
                         ? "border-cyan-400 bg-cyan-400/10 shadow-[0_0_18px_rgba(0,245,255,.35)] scale-105"
                         : player2?.id === char.id
-                          ? "border-pink-500 bg-pink-500/10 shadow-[0_0_18px_rgba(255,0,184,.35)] scale-105"
+                          ? "border-red-500 bg-red-500/10 shadow-[0_0_18px_rgba(255,0,184,.35)] scale-105"
                           : activePlayer === 1
                             ? "border-cyan-400 hover:bg-cyan-400/10 hover:scale-105 hover:shadow-[0_0_14px_rgba(0,245,255,.18)]"
-                            : "border-pink-500 hover:bg-pink-500/10 hover:scale-105 hover:shadow-[0_0_14px_rgba(255,0,184,.18)]"
+                            : "border-red-500 hover:bg-red-500/10 hover:scale-105 hover:shadow-[0_0_14px_rgba(255,0,184,.18)]"
                   }`}
                 >
                   {player1?.id === char.id && (
@@ -208,7 +211,7 @@ export default function SelectPage() {
                   )}
 
                   {player2?.id === char.id && (
-                    <span className="absolute top-2 right-2 text-[10px] font-bold text-pink-400">
+                    <span className="absolute top-2 right-2 text-[10px] font-bold text-red-500">
                       P2
                     </span>
                   )}
@@ -224,15 +227,22 @@ export default function SelectPage() {
             player2,
             2,
             activePlayer === 2
-              ? "border-pink-500 shadow-[0_0_20px_rgba(255,0,184,.25)]"
+              ? "border-red-500 shadow-[0_0_20px_rgba(255,0,184,.25)]"
               : "border-gray-700",
           )}
         </div>
 
         <button
-          onClick={() => {
+          onClick={async () => {
             playArena();
-            startBattle();
+
+            if (Howler.ctx?.state !== "running") {
+              await Howler.ctx.resume();
+            }
+
+            setTimeout(() => {
+              startBattle();
+            }, 180);
           }}
           disabled={!player1 || !player2}
           className="mt-8 w-full py-4 rounded-2xl font-black bg-cyan-400 text-black disabled:opacity-40"
