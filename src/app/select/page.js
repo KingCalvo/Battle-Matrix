@@ -83,16 +83,20 @@ export default function SelectPage() {
       <div
         className={`panel rounded-3xl p-6 border transition-all duration-300 hover:scale-[1.02] ${activeColor} self-center`}
       >
-        <p className="tracking-[.3em] text-xs opacity-70 text-center">
+        <p className="tracking-[.3em] text-xs opacity-70 text-center text-white">
           PLAYER {num}
         </p>
 
         <div className="mt-5 flex flex-col items-center justify-center">
           {player ? (
             <>
-              <Icon className="text-7xl md:text-8xl" />
+              <Icon
+                className={`text-7xl md:text-8xl ${
+                  num === 1 ? "text-blue-300" : "text-red-500"
+                }`}
+              />
 
-              <p className="mt-4 text-xl font-bold text-center leading-tight">
+              <p className="mt-4 text-xl font-bold text-center text-white leading-tight">
                 {player.name}
               </p>
             </>
@@ -111,7 +115,11 @@ export default function SelectPage() {
             setActivePlayer(num);
           }}
           className={`mt-6 w-full py-3 rounded-2xl font-bold transition hover:scale-[1.02]
-        ${num === 1 ? "bg-cyan-400 text-black" : "bg-pink-500 text-white"}`}
+        ${
+          num === 1
+            ? "bg-blue-900 text-white shadow-[0_0_18px_rgba(59,130,246,.22)]"
+            : "bg-red-500 text-white border border-red-500 shadow-[0_0_18px_rgba(255,0,0,.28)]"
+        }`}
         >
           SELECT PLAYER {num}
         </button>
@@ -122,14 +130,14 @@ export default function SelectPage() {
   return (
     <main className="min-h-screen p-4 md:p-8 flex items-center justify-center">
       <div className="panel neon-border rounded-3xl w-full max-w-[1600px] p-6">
-        <h1 className="text-center text-4xl md:text-6xl font-black glow-text">
+        <h1 className="text-center text-4xl md:text-6xl font-black text-white drop-shadow-[0_0_14px_rgba(255,255,255,.35)]">
           SELECCIÓN DE PERSONAJE
         </h1>
 
         {/* Rondas */}
         <div className="mt-6 flex flex-col items-center gap-4">
           <div className="flex items-center gap-3">
-            <p className="tracking-[.25em] text-sm text-cyan-300">
+            <p className="tracking-[.25em] text-sm text-blue-300">
               ⚔ MATCH RULES
             </p>
 
@@ -138,7 +146,7 @@ export default function SelectPage() {
               className="p-2 rounded-xl bg-white/5 hover:bg-white/10 transition"
             >
               {musicOn ? (
-                <HiSpeakerWave className="text-xl text-cyan-300" />
+                <HiSpeakerWave className="text-xl text-blue-300" />
               ) : (
                 <HiSpeakerXMark className="text-xl text-red-500" />
               )}
@@ -156,7 +164,7 @@ export default function SelectPage() {
                 className={`min-w-[56px] py-3 rounded-2xl font-black transition-all
         ${
           winsToVictory === num
-            ? "bg-cyan-400 text-black scale-110 shadow-[0_0_16px_rgba(0,245,255,.35)]"
+            ? "bg-blue-400 text-white scale-110 shadow-[0_0_18px_rgba(59,130,246,.35)]"
             : "bg-white/5 hover:bg-white/10"
         }`}
               >
@@ -172,12 +180,16 @@ export default function SelectPage() {
             player1,
             1,
             activePlayer === 1
-              ? "border-cyan-400 shadow-[0_0_20px_rgba(0,245,255,.25)]"
+              ? "border-blue-400 shadow-[0_0_20px_rgba(0,245,255,.25)]"
               : "border-gray-700",
           )}
 
           {/* Grid de personajes */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 content-start max-h-[720px] overflow-y-auto pr-2 p-2 custom-scroll">
+          <div
+            className={`grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 content-start max-h-[720px] overflow-y-auto pr-2 p-2 custom-scroll ${
+              activePlayer === 1 ? "scroll-blue" : "scroll-red"
+            }`}
+          >
             {characters.map((char) => {
               const Icon = char.icon;
 
@@ -196,16 +208,16 @@ export default function SelectPage() {
                     blocked
                       ? "opacity-20 border-gray-700 grayscale"
                       : player1?.id === char.id
-                        ? "border-cyan-400 bg-cyan-400/10 shadow-[0_0_18px_rgba(0,245,255,.35)] scale-105"
+                        ? "border-blue-400 bg-blue-400/10 shadow-[0_0_18px_rgba(0,245,255,.35)] scale-105"
                         : player2?.id === char.id
-                          ? "border-red-500 bg-red-500/10 shadow-[0_0_18px_rgba(255,0,184,.35)] scale-105"
+                          ? "border-red-500 bg-red-500/10 shadow-[0_0_18px_rgba(255,0,0,.35)] scale-105"
                           : activePlayer === 1
-                            ? "border-cyan-400 hover:bg-cyan-400/10 hover:scale-105 hover:shadow-[0_0_14px_rgba(0,245,255,.18)]"
-                            : "border-red-500 hover:bg-red-500/10 hover:scale-105 hover:shadow-[0_0_14px_rgba(255,0,184,.18)]"
+                            ? "border-blue-400 hover:bg-blue-400/10 hover:scale-105 hover:shadow-[0_0_14px_rgba(0,245,255,.18)]"
+                            : "border-red-500 hover:bg-red-500/10 hover:scale-105 hover:shadow-[0_0_14px_rgba(255,0,0,.18)]"
                   }`}
                 >
                   {player1?.id === char.id && (
-                    <span className="absolute top-2 left-2 text-[10px] font-bold text-cyan-300">
+                    <span className="absolute top-2 left-2 text-[10px] font-bold text-blue-300">
                       P1
                     </span>
                   )}
@@ -227,7 +239,7 @@ export default function SelectPage() {
             player2,
             2,
             activePlayer === 2
-              ? "border-red-500 shadow-[0_0_20px_rgba(255,0,184,.25)]"
+              ? "border-red-500 shadow-[0_0_20px_rgba(255,0,0,.25)]"
               : "border-gray-700",
           )}
         </div>
@@ -245,7 +257,7 @@ export default function SelectPage() {
             }, 180);
           }}
           disabled={!player1 || !player2}
-          className="mt-8 w-full py-4 rounded-2xl font-black bg-cyan-400 text-black disabled:opacity-40"
+          className="mt-8 w-full py-4 rounded-2xl font-black bg-blue-900 text-white shadow-[0_0_18px_rgba(59,130,246,.22)] hover:scale-[1.02] hover:shadow-[0_0_18px_rgba(59,130,246,.22)] transition-all duration-300 disabled:opacity-40"
         >
           ENTRAR EN LA ARENA
         </button>
