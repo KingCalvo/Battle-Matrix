@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { characters } from "@/data/characters";
 import useGameStore from "@/store/useGameStore";
 import useSound from "use-sound";
-import { HiSpeakerWave, HiSpeakerXMark } from "react-icons/hi2";
+import { HiSpeakerWave, HiSpeakerXMark, HiOutlineHome } from "react-icons/hi2";
 import { Howler, Howl } from "howler";
 
 export default function SelectPage() {
@@ -80,10 +80,13 @@ export default function SelectPage() {
     const Icon = player?.icon;
 
     return (
-      <div
-        className={`panel rounded-3xl p-6 border transition-all duration-300 hover:scale-[1.02] ${activeColor} self-center`}
+      <button
+        type="button"
+        onClick={() => setActivePlayer(num)}
+        className={`panel rounded-3xl p-6 border transition-all duration-300 hover:scale-[1.02] ${activeColor} self-center text-left`}
+        aria-pressed={activePlayer === num}
       >
-        <p className="tracking-[.3em] text-xs opacity-70 text-center text-white">
+        <p className="tracking-[.3em] text-xs text-white text-center">
           PLAYER {num}
         </p>
 
@@ -104,41 +107,46 @@ export default function SelectPage() {
             <>
               <div className="text-7xl opacity-20">?</div>
 
-              <p className="mt-4 opacity-50 text-center">Esperando...</p>
+              <p className="mt-4 opacity-50 text-center text-white">
+                Esperando...
+              </p>
             </>
           )}
         </div>
 
-        <button
-          onClick={() => {
-            playBtn();
-            setActivePlayer(num);
-          }}
-          className={`mt-6 w-full py-3 rounded-2xl font-bold transition hover:scale-[1.02]
+        <div
+          className={`mt-6 w-full py-3 rounded-2xl font-bold transition text-center
         ${
           num === 1
-            ? "bg-blue-900 text-white shadow-[0_0_18px_rgba(59,130,246,.22)]"
-            : "bg-red-500 text-white border border-red-500 shadow-[0_0_18px_rgba(255,0,0,.28)]"
+            ? "bg-blue-900 text-white border border-blue-400 shadow-[0_0_18px_rgba(59,130,246,.22)]"
+            : "bg-red-500 text-white border border-red-200 shadow-[0_0_18px_rgba(255,0,0,.28)]"
         }`}
         >
           SELECT PLAYER {num}
-        </button>
-      </div>
+        </div>
+      </button>
     );
   };
-
   return (
     <main className="min-h-screen p-4 md:p-8 flex items-center justify-center">
       <div className="panel neon-border rounded-3xl w-full max-w-[1600px] p-6">
-        <h1 className="text-center text-4xl md:text-6xl font-black text-white drop-shadow-[0_0_14px_rgba(255,255,255,.35)]">
+        <h1 className="text-center text-4xl md:text-5xl font-black text-white drop-shadow-[0_0_14px_rgba(255,255,255,.35)]">
           SELECCIÓN DE PERSONAJE
         </h1>
 
         {/* Rondas */}
         <div className="mt-6 flex flex-col items-center gap-4">
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 justify-center flex-wrap">
+            <button
+              onClick={() => router.push("/")}
+              className="p-2 rounded-xl bg-white/5 hover:bg-white/10 transition"
+              title="Home"
+            >
+              <HiOutlineHome className="text-xl text-blue-300" />
+            </button>
+
             <p className="tracking-[.25em] text-sm text-blue-300">
-              ⚔ MATCH RULES
+              ⚔ MATCH RULES ⚔
             </p>
 
             <button
@@ -162,19 +170,39 @@ export default function SelectPage() {
                   setWinsToVictory(num);
                 }}
                 className={`min-w-[56px] py-3 rounded-2xl font-black transition-all
-        ${
-          winsToVictory === num
-            ? "bg-blue-400 text-white scale-110 shadow-[0_0_18px_rgba(59,130,246,.35)]"
-            : "bg-white/5 hover:bg-white/10"
-        }`}
+                ${
+                  winsToVictory === num
+                    ? "bg-blue-500 text-white scale-110 shadow-[0_0_18px_rgba(59,130,246,.35)]"
+                    : "bg-white/5 hover:bg-white/10"
+                }`}
               >
                 {num}
               </button>
             ))}
           </div>
+
+          <div className="mt-4 flex justify-center">
+            <button
+              onClick={async () => {
+                playArena();
+
+                if (Howler.ctx?.state !== "running") {
+                  await Howler.ctx.resume();
+                }
+
+                setTimeout(() => {
+                  startBattle();
+                }, 180);
+              }}
+              disabled={!player1 || !player2}
+              className="px-12 py-4 rounded-2xl font-black bg-blue-900 text-white border border-blue-400 shadow-[0_0_18px_rgba(59,130,246,.22)] hover:scale-[1.02] hover:shadow-[0_0_18px_rgba(59,130,246,.22)] transition-all duration-300 disabled:opacity-40"
+            >
+              PLAY
+            </button>
+          </div>
         </div>
 
-        <div className="grid lg:grid-cols-[320px_1fr_320px] gap-6 mt-8 items-center">
+        <div className="grid lg:grid-cols-[260px_1fr_260px] gap-3 mt-8 items-center">
           {/* Izquierda */}
           {renderCard(
             player1,
@@ -185,17 +213,15 @@ export default function SelectPage() {
           )}
 
           {/* Grid de personajes */}
-          <div
-            className={`grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 content-start max-h-[720px] overflow-y-auto pr-2 p-2 custom-scroll ${
-              activePlayer === 1 ? "scroll-blue" : "scroll-red"
-            }`}
-          >
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 lg:grid-cols-10 gap-2 content-start max-h-[720px] overflow-y-auto pr-2 p-2 custom-scroll select-grid">
             {characters.map((char) => {
               const Icon = char.icon;
+              const isP1Selected = player1?.id === char.id;
+              const isP2Selected = player2?.id === char.id;
 
               const blocked =
-                (activePlayer === 1 && player2?.id === char.id) ||
-                (activePlayer === 2 && player1?.id === char.id);
+                (activePlayer === 1 && isP2Selected) ||
+                (activePlayer === 2 && isP1Selected);
 
               return (
                 <button
@@ -203,17 +229,14 @@ export default function SelectPage() {
                   disabled={blocked}
                   onClick={() => handleSelect(char)}
                   onMouseEnter={() => !blocked && playHover()}
-                  className={`rounded-2xl p-4 border min-h-[115px] transition-all duration-200 hover:z-20 relative z-0
-                  ${
-                    blocked
-                      ? "opacity-20 border-gray-700 grayscale"
-                      : player1?.id === char.id
-                        ? "border-blue-400 bg-blue-400/10 shadow-[0_0_18px_rgba(0,245,255,.35)] scale-105"
-                        : player2?.id === char.id
-                          ? "border-red-500 bg-red-500/10 shadow-[0_0_18px_rgba(255,0,0,.35)] scale-105"
-                          : activePlayer === 1
-                            ? "border-blue-400 hover:bg-blue-400/10 hover:scale-105 hover:shadow-[0_0_14px_rgba(0,245,255,.18)]"
-                            : "border-red-500 hover:bg-red-500/10 hover:scale-105 hover:shadow-[0_0_14px_rgba(255,0,0,.18)]"
+                  className={`rounded-2xl p-4 border min-h-[115px] transition-all duration-200 hover:z-20 relative z-0 ${
+                    isP1Selected
+                      ? "border-blue-400 bg-blue-400/10 shadow-[0_0_18px_rgba(59,130,246,.35)] scale-105"
+                      : isP2Selected
+                        ? "border-red-500 bg-red-500/10 shadow-[0_0_18px_rgba(255,0,0,.35)] scale-105"
+                        : blocked
+                          ? "opacity-40 border-sky-400/20 bg-sky-400/5"
+                          : "border-sky-400/60 hover:bg-sky-400/10 hover:scale-105 hover:shadow-[0_0_14px_rgba(56,189,248,.22)]"
                   }`}
                 >
                   {player1?.id === char.id && (
@@ -227,7 +250,15 @@ export default function SelectPage() {
                       P2
                     </span>
                   )}
-                  <Icon className="text-5xl mx-auto" />
+                  <Icon
+                    className={`text-5xl mx-auto ${
+                      isP1Selected
+                        ? "text-blue-300"
+                        : isP2Selected
+                          ? "text-red-500"
+                          : ""
+                    }`}
+                  />
                   <p className="mt-3 text-xs">{char.name}</p>
                 </button>
               );
@@ -243,24 +274,6 @@ export default function SelectPage() {
               : "border-gray-700",
           )}
         </div>
-
-        <button
-          onClick={async () => {
-            playArena();
-
-            if (Howler.ctx?.state !== "running") {
-              await Howler.ctx.resume();
-            }
-
-            setTimeout(() => {
-              startBattle();
-            }, 180);
-          }}
-          disabled={!player1 || !player2}
-          className="mt-8 w-full py-4 rounded-2xl font-black bg-blue-900 text-white shadow-[0_0_18px_rgba(59,130,246,.22)] hover:scale-[1.02] hover:shadow-[0_0_18px_rgba(59,130,246,.22)] transition-all duration-300 disabled:opacity-40"
-        >
-          ENTRAR EN LA ARENA
-        </button>
       </div>
     </main>
   );
