@@ -12,6 +12,10 @@ export default function Home() {
 
   const [booted, setBooted] = useState(false);
 
+  const [playSelect] = useSound("/sounds/btnSound-3.wav", {
+    volume: 0.3,
+  });
+
   const [playMusic, { stop }] = useSound("/sounds/OTS-Home.mp3", {
     volume: 0.2,
     loop: true,
@@ -115,7 +119,12 @@ export default function Home() {
             </p>
 
             <button
-              onClick={() => router.push("/select")}
+              onClick={() => {
+                playSelect();
+                setTimeout(() => {
+                  router.push("/select");
+                }, 120);
+              }}
               className="mt-5 px-10 py-4 rounded-2xl bg-blue-900 text-white font-black border border-blue-400 shadow-[0_0_18px_rgba(59,130,246,.22)] hover:scale-105 hover:shadow-[0_0_22px_rgba(59,130,246,.35)] transition-all duration-300"
             >
               PLAY

@@ -26,6 +26,9 @@ export default function SelectPage() {
     winsToVictory,
     setWinsToVictory,
     resetMatch,
+    setGameMode: saveGameMode,
+    aiDifficulty,
+    setAiDifficulty,
   } = useGameStore();
 
   const [activePlayer, setActivePlayer] = useState(1);
@@ -144,15 +147,41 @@ export default function SelectPage() {
           )}
         </div>
 
-        <div
-          className={`mt-6 w-full py-3 rounded-2xl font-bold text-center ${
-            num === 1
-              ? "bg-blue-900 text-white border border-blue-400"
-              : "bg-red-500 text-white border border-red-200"
-          }`}
-        >
-          {isAI ? "Control IA" : "Elegir personaje"}
-        </div>
+        {/* Jugador normal */}
+        {!isAI && (
+          <div
+            className={`mt-6 w-full py-3 rounded-2xl font-bold text-center ${
+              num === 1
+                ? "bg-blue-900 text-white border border-blue-400"
+                : "bg-red-500 text-white border border-red-200"
+            }`}
+          >
+            Elegir personaje
+          </div>
+        )}
+
+        {/* Dificultad de la IA */}
+        {isAI && (
+          <div className="mt-6 grid gap-2">
+            {["facil", "normal", "dificil"].map((level) => (
+              <button
+                key={level}
+                onClick={() => {
+                  playBtn();
+                  setAiDifficulty(level);
+                }}
+                className={`py-2 rounded-2xl font-black tracking-wider transition-all border
+                ${
+                  aiDifficulty === level
+                    ? "bg-red-500 text-white border-red-300 scale-105 shadow-[0_0_18px_rgba(255,0,0,.45)]"
+                    : "bg-white/5 text-white border-white/10 hover:bg-white/10"
+                }`}
+              >
+                {level.toUpperCase()}
+              </button>
+            ))}
+          </div>
+        )}
       </CardTag>
     );
   };
@@ -231,6 +260,7 @@ export default function SelectPage() {
                   onClick={() => {
                     playBtn();
                     setGameMode("friend");
+                    saveGameMode("friend");
                   }}
                   className="panel rounded-3xl p-10 border border-blue-400 hover:scale-105 transition-all shadow-[0_0_24px_rgba(59,130,246,.25)]"
                 >
@@ -249,6 +279,7 @@ export default function SelectPage() {
                   onClick={() => {
                     playBtn();
                     setGameMode("ai");
+                    saveGameMode("ai");
                     setActivePlayer(1);
                   }}
                   className="panel rounded-3xl p-10 border border-red-500 hover:scale-105 transition-all shadow-[0_0_24px_rgba(255,0,0,.22)]"
@@ -272,6 +303,7 @@ export default function SelectPage() {
                 onClick={() => {
                   playBtn();
                   setGameMode(null);
+                  saveGameMode(null);
                   setPlayer1(null);
                   setPlayer2(null);
                 }}

@@ -17,7 +17,8 @@ const wins = [
 const useGameStore = create((set, get) => ({
   player1: null,
   player2: null,
-
+  gameMode: null,
+  aiDifficulty: "normal",
   winsToVictory: 3,
 
   board: emptyBoard,
@@ -31,6 +32,8 @@ const useGameStore = create((set, get) => ({
 
   setPlayer1: (player) => set({ player1: player }),
   setPlayer2: (player) => set({ player2: player }),
+  setGameMode: (mode) => set({ gameMode: mode }),
+  setAiDifficulty: (level) => set({ aiDifficulty: level }),
 
   setWinsToVictory: (num) => set({ winsToVictory: num }),
 

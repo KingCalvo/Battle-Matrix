@@ -40,6 +40,110 @@ function getRandomSong() {
 
 const emptyBoard = Array(9).fill(null);
 
+function getFreeCells(board) {
+  return board
+    .map((cell, i) => (cell === null ? i : null))
+    .filter((v) => v !== null);
+}
+
+function checkWinner(board) {
+  for (const [a, b, c] of winLines) {
+    if (board[a] && board[a] === board[b] && board[a] === board[c]) {
+      return board[a];
+    }
+  }
+
+  return null;
+}
+
+function getSmartMove(board) {
+  const free = getFreeCells(board);
+
+  // ganar
+  for (const i of free) {
+    const copy = [...board];
+    copy[i] = 2;
+
+    if (checkWinner(copy) === 2) return i;
+  }
+
+  // bloquear
+  for (const i of free) {
+    const copy = [...board];
+    copy[i] = 1;
+
+    if (checkWinner(copy) === 1) return i;
+  }
+
+  // centro
+  if (board[4] === null) return 4;
+
+  // esquinas
+  const corners = [0, 2, 6, 8].filter((i) => board[i] === null);
+
+  if (corners.length) {
+    return corners[Math.floor(Math.random() * corners.length)];
+  }
+
+  return free[Math.floor(Math.random() * free.length)];
+}
+
+function minimax(board, isMaximizing) {
+  const winner = checkWinner(board);
+
+  if (winner === 2) return 10;
+  if (winner === 1) return -10;
+
+  const free = getFreeCells(board);
+
+  if (!free.length) return 0;
+
+  if (isMaximizing) {
+    let best = -999;
+
+    for (const i of free) {
+      const copy = [...board];
+      copy[i] = 2;
+
+      best = Math.max(best, minimax(copy, false));
+    }
+
+    return best;
+  } else {
+    let best = 999;
+
+    for (const i of free) {
+      const copy = [...board];
+      copy[i] = 1;
+
+      best = Math.min(best, minimax(copy, true));
+    }
+
+    return best;
+  }
+}
+
+function getBestMove(board) {
+  const free = getFreeCells(board);
+
+  let bestScore = -999;
+  let move = free[0];
+
+  for (const i of free) {
+    const copy = [...board];
+    copy[i] = 2;
+
+    const score = minimax(copy, false);
+
+    if (score > bestScore) {
+      bestScore = score;
+      move = i;
+    }
+  }
+
+  return move;
+}
+
 async function unlockAudio() {
   if (Howler.ctx && Howler.ctx.state !== "running") {
     await Howler.ctx.resume();
@@ -49,7 +153,14 @@ async function unlockAudio() {
 export default function ArenaPage() {
   const router = useRouter();
 
-  const { player1, player2, winsToVictory, resetMatch } = useGameStore();
+  const {
+    player1,
+    player2,
+    winsToVictory,
+    resetMatch,
+    gameMode,
+    aiDifficulty,
+  } = useGameStore();
 
   const [board, setBoard] = useState(emptyBoard);
   const [turn, setTurn] = useState(1);
@@ -73,7 +184,7 @@ export default function ArenaPage() {
   const timerRef = useRef(null);
 
   const [introOpen, setIntroOpen] = useState(true);
-  const [introStep, setIntroStep] = useState("VS");
+  const [introStep, setIntroStep] = useState("ROUND 1");
 
   const [track, setTrack] = useState(songs[0]);
 
@@ -280,7 +391,9 @@ export default function ArenaPage() {
     loseHeart(loser);
   }, [turn, player1, player2, loseHeart]);
 
-  function handleMove(index) {
+  function handleMove(index, fromAI = false) {
+    if (gameMode === "ai" && turn === 2 && !fromAI) return;
+
     if (locked || board[index] || matchWinner || introOpen) return;
 
     setLocked(true);
@@ -392,7 +505,7 @@ export default function ArenaPage() {
 
     // Intro
     setIntroOpen(true);
-    setIntroStep("VS");
+    setIntroStep("ROUND 1");
 
     // Round FX
     setShowRoundFx(true);
@@ -521,6 +634,40 @@ export default function ArenaPage() {
     }
   }, [musicOn, stopMusic, stopCinematic, stopWinnerTheme]);
 
+  //Modo: IA
+  useEffect(() => {
+    if (gameMode !== "ai" || turn !== 2 || locked || introOpen || matchWinner)
+      return;
+
+    const free = getFreeCells(board);
+
+    if (!free.length) return;
+
+    const timer = setTimeout(() => {
+      let move;
+
+      if (aiDifficulty === "facil") {
+        move = free[Math.floor(Math.random() * free.length)];
+      }
+
+      if (aiDifficulty === "normal") {
+        const smart = Math.random() < 0.7;
+
+        move = smart
+          ? getSmartMove(board)
+          : free[Math.floor(Math.random() * free.length)];
+      }
+
+      if (aiDifficulty === "dificil") {
+        move = getBestMove(board);
+      }
+
+      handleMove(move, true);
+    }, 700);
+
+    return () => clearTimeout(timer);
+  }, [turn, board, locked, introOpen, matchWinner, gameMode, aiDifficulty]);
+
   if (!player1 || !player2) return null;
 
   const Icon1 = player1.icon;
@@ -528,9 +675,22 @@ export default function ArenaPage() {
 
   const currentTurn = turn === 1 ? player1.name : player2.name;
 
-  const winnerName = matchWinner === 1 ? player1.name : player2.name;
-
   const WinnerIcon = matchWinner === 1 ? Icon1 : Icon2;
+  const iaName =
+    aiDifficulty === "facil"
+      ? "IA FÁCIL"
+      : aiDifficulty === "normal"
+        ? "IA NORMAL"
+        : "IA DIFÍCIL";
+
+  const winnerName =
+    gameMode === "ai"
+      ? matchWinner === 1
+        ? "JUGADOR"
+        : iaName
+      : matchWinner === 1
+        ? "JUGADOR 1"
+        : "JUGADOR 2";
 
   let winningLine = null;
 
@@ -554,46 +714,71 @@ export default function ArenaPage() {
             <motion.div
               initial={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="absolute inset-0 z-50 bg-[#0A1326] flex flex-col items-center justify-center"
+              className="absolute inset-0 z-50 bg-[#0A1326] flex flex-col items-center justify-center px-4"
             >
-              <p className="text-xl md:text-5xl font-black tracking-[.35em] mb-12 text-white sm:tracking-[.3em] drop-shadow-[0_0_18px_rgba(255,255,255,.65)]">
+              <p className="text-3xl md:text-5xl font-black tracking-[.25em] text-white mb-10 drop-shadow-[0_0_18px_rgba(255,255,255,.65)]">
                 BEST OF {winsToVictory}
               </p>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 items-center gap-4 md:gap-6 w-full max-w-5xl px-4 sm:px-6 md:px-8">
+              {/* Centro */}
+              <div className="grid grid-cols-3 items-center gap-2 sm:gap-4 w-full max-w-5xl">
                 {/* Player 1 */}
                 <motion.div
-                  initial={{ x: -200, opacity: 0 }}
+                  initial={{ x: -220, opacity: 0 }}
                   animate={{ x: 0, opacity: 1 }}
                   transition={{ duration: 0.6 }}
-                  className="rounded-3xl border border-blue-400 bg-blue-400/10 shadow-[0_0_22px_rgba(59,130,246,.35)] p-4 sm:p-6 text-center"
+                  className="rounded-3xl border border-blue-400 bg-blue-400/10 shadow-[0_0_22px_rgba(59,130,246,.35)] p-5 sm:p-6 text-center min-w-0"
                 >
-                  <Icon1 className="text-6xl mx-auto text-blue-300" />
-                  <p className="mt-4 font-bold">{player1.name}</p>
+                  <p className="text-[10px] sm:text-sm tracking-[.25em] text-blue-300 mb-4 font-bold">
+                    {gameMode === "ai" ? "JUGADOR" : "JUGADOR 1"}
+                  </p>
+
+                  <Icon1 className="text-7xl mx-auto text-blue-300" />
+
+                  <p className="mt-2 sm:mt-4 font-black text-xs sm:text-base break-words">
+                    {player1.name}
+                  </p>
                 </motion.div>
 
-                {/* Centro */}
+                {/* VS */}
                 <motion.div
-                  key={introStep}
-                  initial={{ scale: 0.4, opacity: 0 }}
-                  animate={{ scale: 1.2, opacity: 1 }}
-                  transition={{ duration: 0.35 }}
-                  className="text-center text-2xl sm:text-3xl md:text-5xl lg:text-6xl z-20 relative px-2 font-black animate-pulse drop-shadow-[0_0_8px_rgba(59,130,246,.45)]"
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1.2 }}
+                  transition={{ duration: 0.45 }}
+                  className="text-center text-3xl md:text-5xl font-black text-white drop-shadow-[0_0_20px_rgba(255,255,255,.8)]"
                 >
-                  {introStep}
+                  VS
                 </motion.div>
 
                 {/* Player 2 */}
                 <motion.div
-                  initial={{ x: 200, opacity: 0 }}
+                  initial={{ x: 220, opacity: 0 }}
                   animate={{ x: 0, opacity: 1 }}
                   transition={{ duration: 0.6 }}
-                  className="rounded-3xl border border-red-500 bg-red-500/10 shadow-[0_0_22px_rgba(255,0,0,.35)] p-4 sm:p-6 text-center"
+                  className="rounded-3xl border border-red-500 bg-red-500/10 shadow-[0_0_22px_rgba(255,0,0,.35)] p-5 sm:p-6 text-center min-w-0"
                 >
-                  <Icon2 className="text-6xl mx-auto text-red-500" />
-                  <p className="mt-4 font-bold">{player2.name}</p>
+                  <p className="text-[9px] sm:text-sm tracking-[.25em] text-red-400 mb-4 font-bold">
+                    {gameMode === "ai" ? iaName : "JUGADOR 2"}
+                  </p>
+
+                  <Icon2 className="text-7xl mx-auto text-red-500" />
+
+                  <p className="mt-2 sm:mt-4 font-black text-xs sm:text-base break-words">
+                    {player2.name}
+                  </p>
                 </motion.div>
               </div>
+
+              {/* Texto del round y del fight*/}
+              <motion.div
+                key={introStep}
+                initial={{ opacity: 0, scale: 0.7 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.4 }}
+                className="mt-12 text-3xl md:text-5xl font-black text-white tracking-[.25em] drop-shadow-[0_0_20px_rgba(59,130,246,.7)] animate-pulse"
+              >
+                {introStep}
+              </motion.div>
             </motion.div>
           )}
         </AnimatePresence>
@@ -645,7 +830,7 @@ export default function ArenaPage() {
                   </button>
 
                   <p className="text-white tracking-[.18em] sm:tracking-[.25em] text-xs sm:text-sm md:text-lg font-black glow-text drop-shadow-[0_0_18px_rgba(59,130,246,.65)]">
-                    BEST OF {winsToVictory}
+                    El mejor de {winsToVictory}
                   </p>
 
                   <button
@@ -674,10 +859,10 @@ export default function ArenaPage() {
                   {matchWinner
                     ? "Partida completada"
                     : winner
-                      ? "Round completado"
+                      ? "Ronda completado"
                       : locked
-                        ? "Loading..."
-                        : `Turno: ${currentTurn}`}
+                        ? "Cargando..."
+                        : `Turno de ${currentTurn}`}
                 </motion.p>
 
                 <p className="mt-2 text-xs opacity-70">ROUND {round}</p>
@@ -720,19 +905,21 @@ export default function ArenaPage() {
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                   onClick={() => handleMove(i)}
-                  disabled={locked || matchWinner}
+                  disabled={
+                    locked || matchWinner || (gameMode === "ai" && turn === 2)
+                  }
                   className="aspect-square rounded-3xl sm:rounded-3xl panel border border-cyan-400/30 flex items-center justify-center relative min-h-[78px] sm:min-h-[110px]"
                 >
                   {cell === 1 && (
-                    <Icon1 className="text-3xl sm:text-5xl text-blue-300" />
+                    <Icon1 className="text-3xl sm:text-5xl text-blue-300 drop-shadow-[0_0_12px_rgba(59,130,246,.95)]" />
                   )}
 
                   {cell === 2 && (
-                    <Icon2 className="text-3xl sm:text-5xl text-red-500" />
+                    <Icon2 className="text-3xl sm:text-5xl text-red-500 drop-shadow-[0_0_12px_rgba(255,0,0,.95)]" />
                   )}
 
                   {winningLine?.includes(i) && (
-                    <div className="absolute inset-0 rounded-3xl border-2 border-cyan-300 animate-pulse" />
+                    <div className="absolute inset-0 rounded-3xl border-2 border-blue-300 animate-pulse" />
                   )}
                 </motion.button>
               ))}
@@ -762,7 +949,7 @@ export default function ArenaPage() {
               initial={{ opacity: 0, y: -24, scale: 0.9 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               transition={{ duration: 0.45 }}
-              className="text-2xl sm:text-3xl md:text-5xl font-black text-white tracking-[.2em] sm:tracking-[.35em] text-center px-2 drop-shadow-[0_0_18px_rgba(255,255,255,.65)]"
+              className="text-3xl md:text-5xl font-black text-white tracking-[.2em] sm:tracking-[.35em] text-center px-2 drop-shadow-[0_0_18px_rgba(255,255,255,.65)]"
             >
               PERFECT WIN
             </motion.p>
@@ -771,7 +958,7 @@ export default function ArenaPage() {
               initial={{ opacity: 0, y: -12, scale: 0.9 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               transition={{ duration: 0.45, delay: 0.18 }}
-              className="mt-2 text-3xl sm:text-4xl md:text-6xl font-black text-red-500 tracking-[.22em] sm:tracking-[.3em] text-center px-2"
+              className="mt-5 text-3xl md:text-6xl font-black text-red-500 tracking-[.22em] sm:tracking-[.3em] text-center px-2"
             >
               FATALITY
             </motion.p>
@@ -1071,11 +1258,11 @@ export default function ArenaPage() {
                 }`}
               />
 
-              <h2 className="text-2xl sm:text-4xl font-black mt-4 glow-text break-words">
+              <h2 className="text-xl sm:text-3xl font-black mt-4 glow-text break-words">
                 {winnerName}
               </h2>
 
-              <p className="mt-2 opacity-80">GAME WINNER</p>
+              <p className="mt-2 opacity-80">GANADOR DEL JUEGO</p>
 
               <div className="grid gap-4 mt-8">
                 <button
