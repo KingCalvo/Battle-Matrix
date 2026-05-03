@@ -402,7 +402,7 @@ export default function ArenaPage() {
     }, 1200);
 
     // Intro animación
-    setTimeout(() => setIntroStep("READY"), 1000);
+    setTimeout(() => setIntroStep("ROUND 1"), 1000);
 
     setTimeout(() => setIntroStep("FIGHT"), 2000);
 
@@ -473,7 +473,7 @@ export default function ArenaPage() {
 
   // Cinematica de inicio
   useEffect(() => {
-    const t1 = setTimeout(() => setIntroStep("READY"), 1000);
+    const t1 = setTimeout(() => setIntroStep("ROUND 1"), 1000);
     const t2 = setTimeout(() => setIntroStep("FIGHT"), 2000);
     const t3 = setTimeout(() => {
       setIntroOpen(false);
