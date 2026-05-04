@@ -716,12 +716,13 @@ export default function ArenaClient() {
               exit={{ opacity: 0 }}
               className="absolute inset-0 z-50 bg-[#0A1326] flex flex-col items-center justify-center px-4"
             >
-              <p className="text-3xl md:text-5xl font-black tracking-[.25em] text-white mb-10 drop-shadow-[0_0_18px_rgba(255,255,255,.65)]">
-                BEST OF {winsToVictory}
+              <p className="text-3xl text-center md:text-5xl font-black tracking-[.25em] text-white mb-10 drop-shadow-[0_0_18px_rgba(255,255,255,.65)]">
+                BATTLE FOR {winsToVictory}{" "}
+                {winsToVictory === 1 ? "LIFE" : "LIVES"}
               </p>
 
               {/* Centro */}
-              <div className="grid grid-cols-3 items-center gap-2 sm:gap-4 w-full max-w-5xl">
+              <div className="grid grid-cols-3 items-center gap-2 sm:gap-4 w-full max-w-5xl mt-7">
                 {/* Player 1 */}
                 <motion.div
                   initial={{ x: -220, opacity: 0 }}
@@ -829,8 +830,9 @@ export default function ArenaClient() {
                     <HiArrowLeftOnRectangle className="text-lg text-red-500" />
                   </button>
 
-                  <p className="text-white tracking-[.18em] sm:tracking-[.25em] text-xs sm:text-sm md:text-lg font-black glow-text drop-shadow-[0_0_18px_rgba(59,130,246,.65)]">
-                    El mejor de {winsToVictory}
+                  <p className="text-white tracking-[.18em] sm:tracking-[.25em] text-xs sm:text-sm lg:text-sm font-black glow-text drop-shadow-[0_0_18px_rgba(59,130,246,.65)]">
+                    Batalla por {winsToVictory}{" "}
+                    {winsToVictory === 1 ? "vida" : "vidas"}
                   </p>
 
                   <button

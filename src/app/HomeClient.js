@@ -20,12 +20,6 @@ export default function HomeClient() {
     volume: 0.3,
   });
 
-  const [playMusic, { stop }] = useSound("/sounds/OTS-Home.mp3", {
-    volume: 0.2,
-    loop: true,
-    preload: true,
-  });
-
   useEffect(() => {
     const unlock = async () => {
       try {
@@ -33,7 +27,6 @@ export default function HomeClient() {
           await Howler.ctx.resume();
         }
 
-        playMusic();
         setBooted(true);
 
         window.removeEventListener("pointerdown", unlock);
@@ -54,7 +47,7 @@ export default function HomeClient() {
       window.removeEventListener("keydown", unlock);
       window.removeEventListener("touchstart", unlock);
     };
-  }, [playMusic, stop]);
+  });
 
   return (
     <main className="min-h-screen px-4 py-6 md:px-8 flex items-center justify-center relative overflow-hidden">
@@ -126,7 +119,7 @@ export default function HomeClient() {
               onClick={() => {
                 playSelect();
                 setTimeout(() => {
-                  router.push("/select");
+                  router.push("/mode");
                 }, 120);
               }}
               className="mt-5 px-10 py-4 rounded-2xl bg-blue-900 text-white font-black border border-blue-400 shadow-[0_0_18px_rgba(59,130,246,.22)] hover:scale-105 hover:shadow-[0_0_22px_rgba(59,130,246,.35)] transition-all duration-300"
@@ -135,9 +128,7 @@ export default function HomeClient() {
             </button>
 
             <div className="mt-8 flex items-center gap-3 text-[10px] sm:text-xs tracking-[.28em] text-white/60 whitespace-nowrap">
-              <span className="h-px w-0 lg:w-10 bg-white/20" />
               <span>PRESENTADO POR ENRIQUE CALVO GARCIA</span>
-              <span className="h-px w-0 lg:w-10 bg-white/20" />
             </div>
           </div>
         </div>
