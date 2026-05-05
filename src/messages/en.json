@@ -1,0 +1,160 @@
+{
+  "home": {
+    "pressKey": "PRESS ANY KEY",
+    "description": "Enter the arena, choose your character, and dominate the battle.",
+    "play": "PLAY",
+    "presentedBy": "PRESENTED BY ENRIQUE CALVO GARCIA"
+  },
+
+  "common": {
+    "changeLanguage": "Change language",
+    "spanish": "Spanish",
+    "english": "English"
+  },
+
+  "mode": {
+    "title": "Choose Game Mode",
+    "home": "Home",
+    "onlineTitle": "Online Battle",
+    "onlineDesc": "Create or join a room",
+    "localTitle": "Local Arena",
+    "localDesc": "Play on the same device"
+  },
+
+  "localMode": {
+    "title": "Welcome to local mode",
+    "subtitle": "Choose how you want to play",
+    "back": "Game modes",
+    "friend": "Play against a friend",
+    "ai": "Play against AI"
+  },
+
+  "select": {
+    "title": "CHARACTER SELECTION",
+    "chooseLives": "Choose number of lives",
+    "gameMode": "Game Mode",
+    "play": "PLAY",
+    "player": "Player",
+    "ai": "AI",
+    "waiting": "Waiting...",
+    "chooseCharacter": "Choose character",
+    "difficulty": {
+      "facil": "EASY",
+      "normal": "NORMAL",
+      "dificil": "HARD"
+    }
+  },
+
+  "arena": {
+    "battleFor": "Battle for",
+    "life": "life",
+    "lives": "lives",
+    "player": "PLAYER",
+    "player1": "PLAYER 1",
+    "player2": "PLAYER 2",
+    "vs": "VS",
+    "round": "ROUND",
+    "fight": "FIGHT",
+    "turnOf": "Turn of",
+    "completedMatch": "Match completed",
+    "completedRound": "Round completed",
+    "loading": "Loading...",
+    "exit": "Exit",
+    "timeoutLose": "lost a heart",
+    "perfectWin": "PERFECT WIN",
+    "fatality": "FATALITY",
+    "winnerGame": "GAME WINNER",
+    "rematch": "Rematch",
+    "changeCharacter": "Change character",
+    "seconds": "s",
+    "iaEasy": "AI EASY",
+    "iaNormal": "AI NORMAL",
+    "iaHard": "AI HARD"
+  },
+
+  "arenaOnline": {
+    "battleFor": "Battle for",
+    "life": "life",
+    "lives": "lives",
+    "round": "ROUND",
+    "fight": "FIGHT",
+    "turnOf": "Turn of",
+    "yourTurn": "Your turn",
+    "waiting": "Waiting for opponent",
+    "exitGame": "Leave match",
+    "seconds": "s",
+    "draw": "DRAW",
+    "perfectWin": "PERFECT WIN",
+    "fatality": "FATALITY",
+    "winnerGame": "GAME WINNER",
+    "rematch": "Rematch",
+    "changeCharacters": "Change characters",
+    "exit": "Exit",
+    "confirmExit": "Are you sure you want to leave the match?",
+    "cancel": "Cancel",
+    "confirm": "Confirm",
+    "timeoutLose": "lost a heart",
+    "loadError": "Failed to load room"
+  },
+
+  "selectOnline": {
+    "title": "CHARACTER SELECTION",
+    "chooseLives": "Choose number of lives",
+    "play": "PLAY",
+    "waiting": "Waiting...",
+    "yourCharacter": "Your character",
+    "rival": "Opponent",
+    "adminOnly": "Only the admin can change lives and start the match",
+    "exitTitle": "Are you sure you want to leave the match?",
+    "cancel": "Cancel",
+    "confirm": "Confirm",
+    "leaveGame": "Leave match",
+    "errorLoading": "Could not load the room"
+  },
+
+  "lobby": {
+    "title": "Welcome to the lobby",
+    "description": "Generate a code and share it with your opponent. If you received a code, enter it to play",
+
+    "gameModes": "Game Modes",
+
+    "roomTitle": "Game Room",
+    "generateCode": "Generate Code",
+    "gameCode": "Game Code",
+    "copy": "Copy",
+    "copied": "Copied",
+
+    "enterCode": "Enter Code",
+    "pasteCode": "Paste Code",
+    "join": "Join",
+
+    "changeName": "Change your name",
+    "changeNamePlaceholder": "Change your name when creating the room",
+    "update": "Update",
+
+    "playersList": "Players in the match",
+    "player": "Player",
+    "name": "Name",
+    "role": "Role",
+    "actions": "Actions",
+    "waiting": "Waiting for opponent...",
+    "admin": "Admin",
+    "guest": "Guest",
+
+    "ready": "Start Match",
+    "cancelReady": "Cancel Start",
+
+    "leaveRoom": "Leave Room",
+
+    "kicked": "You have been removed from the match",
+    "accept": "Accept",
+
+    "errors": {
+      "loadRoom": "Failed to load room",
+      "roomEnded": "The room has ended. Create a new code to play again.",
+      "createRoom": "Failed to create room",
+      "joinRoom": "Failed to join room",
+      "paste": "Failed to paste code"
+    }
+  }
+}

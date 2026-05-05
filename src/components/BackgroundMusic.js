@@ -1,24 +1,37 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import useSound from "use-sound";
-import { Howler } from "howler";
+import { Howl, Howler } from "howler";
 import { usePathname } from "next/navigation";
 
-const MENU_ROUTES = new Set(["/", "/mode", "/lobby", "/local-mode"]);
+const isMenuRoute = (pathname) => {
+  return /^\/(es|en)(\/(mode|lobby|local-mode))?$/.test(pathname);
+};
 
 export default function BackgroundMusic() {
   const pathname = usePathname();
   const startedRef = useRef(false);
-
-  const [playMusic, { stop }] = useSound("/sounds/OTS-Home.mp3", {
-    volume: 0.2,
-    loop: true,
-    preload: true,
-  });
+  const musicRef = useRef(null);
 
   useEffect(() => {
-    const allowed = MENU_ROUTES.has(pathname);
+    const allowed = isMenuRoute(pathname);
+
+    if (!allowed) {
+      if (musicRef.current) {
+        musicRef.current.stop();
+      }
+      startedRef.current = false;
+      return;
+    }
+
+    if (!musicRef.current) {
+      musicRef.current = new Howl({
+        src: ["/sounds/OTS-Home.mp3"],
+        volume: 0.2,
+        loop: true,
+        preload: true,
+      });
+    }
 
     const startMusic = async () => {
       if (startedRef.current) return;
@@ -28,10 +41,8 @@ export default function BackgroundMusic() {
           await Howler.ctx?.resume();
         }
 
-        if (Howler.ctx?.state === "running") {
-          playMusic();
-          startedRef.current = true;
-        }
+        musicRef.current?.play();
+        startedRef.current = true;
       } catch (error) {
         console.log("No se pudo iniciar la música global:", error);
       }
@@ -41,26 +52,22 @@ export default function BackgroundMusic() {
       void startMusic();
     };
 
-    if (!allowed) {
-      stop();
-      startedRef.current = false;
-      return;
-    }
-
-    if (Howler.ctx?.state === "running") {
+    const handleCustomEvent = () => {
       void startMusic();
-    }
+    };
 
-    window.addEventListener("pointerdown", handleUserGesture);
-    window.addEventListener("keydown", handleUserGesture);
-    window.addEventListener("touchstart", handleUserGesture);
+    window.addEventListener("user-interacted", handleCustomEvent);
+    window.addEventListener("pointerdown", handleUserGesture, { once: true });
+    window.addEventListener("keydown", handleUserGesture, { once: true });
+    window.addEventListener("touchstart", handleUserGesture, { once: true });
 
     return () => {
+      window.removeEventListener("user-interacted", handleCustomEvent);
       window.removeEventListener("pointerdown", handleUserGesture);
       window.removeEventListener("keydown", handleUserGesture);
       window.removeEventListener("touchstart", handleUserGesture);
     };
-  }, [pathname, playMusic, stop]);
+  }, [pathname]);
 
   return null;
 }

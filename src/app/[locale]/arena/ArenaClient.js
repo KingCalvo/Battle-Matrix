@@ -1,19 +1,17 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import useSound from "use-sound";
 import { Howler } from "howler";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  HiArrowLeftOnRectangle,
   HiSpeakerWave,
   HiSpeakerXMark,
+  HiArrowLeftOnRectangle,
 } from "react-icons/hi2";
 import { FaHeart, FaRegHeart, FaHeartBroken } from "react-icons/fa";
-import { characters } from "@/data/characters";
-import { supabase } from "@/lib/supabaseClient";
-import { clearOnlineSession, getOnlineSession } from "@/lib/onlineSession";
+import useGameStore from "@/store/useGameStore";
 
 const winLines = [
   [0, 1, 2],
@@ -36,20 +34,114 @@ function stopAllAudio() {
   Howler.stop();
 }
 
-function getCharacter(characterId) {
-  return characters.find((character) => character.id === characterId) || null;
+function getRandomSong() {
+  return songs[((Date.now() + performance.now()) % songs.length) | 0];
 }
 
-function getWinningLine(board) {
-  for (const line of winLines) {
-    const [a, b, c] = line;
+const emptyBoard = Array(9).fill(null);
 
+function getFreeCells(board) {
+  return board
+    .map((cell, i) => (cell === null ? i : null))
+    .filter((v) => v !== null);
+}
+
+function checkWinner(board) {
+  for (const [a, b, c] of winLines) {
     if (board[a] && board[a] === board[b] && board[a] === board[c]) {
-      return line;
+      return board[a];
     }
   }
 
   return null;
+}
+
+function getSmartMove(board) {
+  const free = getFreeCells(board);
+
+  // ganar
+  for (const i of free) {
+    const copy = [...board];
+    copy[i] = 2;
+
+    if (checkWinner(copy) === 2) return i;
+  }
+
+  // bloquear
+  for (const i of free) {
+    const copy = [...board];
+    copy[i] = 1;
+
+    if (checkWinner(copy) === 1) return i;
+  }
+
+  // centro
+  if (board[4] === null) return 4;
+
+  // esquinas
+  const corners = [0, 2, 6, 8].filter((i) => board[i] === null);
+
+  if (corners.length) {
+    return corners[Math.floor(Math.random() * corners.length)];
+  }
+
+  return free[Math.floor(Math.random() * free.length)];
+}
+
+function minimax(board, isMaximizing) {
+  const winner = checkWinner(board);
+
+  if (winner === 2) return 10;
+  if (winner === 1) return -10;
+
+  const free = getFreeCells(board);
+
+  if (!free.length) return 0;
+
+  if (isMaximizing) {
+    let best = -999;
+
+    for (const i of free) {
+      const copy = [...board];
+      copy[i] = 2;
+
+      best = Math.max(best, minimax(copy, false));
+    }
+
+    return best;
+  } else {
+    let best = 999;
+
+    for (const i of free) {
+      const copy = [...board];
+      copy[i] = 1;
+
+      best = Math.min(best, minimax(copy, true));
+    }
+
+    return best;
+  }
+}
+
+function getBestMove(board) {
+  const free = getFreeCells(board);
+
+  let bestScore = -999;
+  let move = free[0];
+
+  for (const i of free) {
+    const copy = [...board];
+    copy[i] = 2;
+
+    const score = minimax(copy, false);
+
+    if (score > bestScore) {
+      bestScore = score;
+      move = i;
+    }
+  }
+
+  return move;
 }
 
 async function unlockAudio() {
@@ -58,36 +150,50 @@ async function unlockAudio() {
   }
 }
 
-export default function ArenaOnlineClient() {
+export default function ArenaClient({ dict }) {
   const router = useRouter();
 
-  const [session, setSession] = useState(null);
-  const [room, setRoom] = useState(null);
-  const [players, setPlayers] = useState([]);
+  const {
+    player1,
+    player2,
+    winsToVictory,
+    resetMatch,
+    gameMode,
+    aiDifficulty,
+  } = useGameStore();
+
+  const [board, setBoard] = useState(emptyBoard);
+  const [turn, setTurn] = useState(1);
+  const [locked, setLocked] = useState(true);
+  const [round, setRound] = useState(1);
+  const [winner, setWinner] = useState(null);
+  const [matchWinner, setMatchWinner] = useState(null);
+
+  const [hp1, setHp1] = useState(winsToVictory);
+  const [hp2, setHp2] = useState(winsToVictory);
+
+  const [timeLeft, setTimeLeft] = useState(15);
   const [musicOn, setMusicOn] = useState(true);
+  const [showRoundFx, setShowRoundFx] = useState(true);
+  const [timeoutText, setTimeoutText] = useState("");
+  const [breakingHeart, setBreakingHeart] = useState(null);
+
+  const timeoutRef = useRef(null);
+  const musicTimeoutRef = useRef(null);
+  const roundFxRef = useRef(null);
+  const timerRef = useRef(null);
+
   const [introOpen, setIntroOpen] = useState(true);
   const [introStep, setIntroStep] = useState("ROUND 1");
-  const [showRoundFx, setShowRoundFx] = useState(true);
-  const [exitOpen, setExitOpen] = useState(false);
-  const [error, setError] = useState("");
-  const [timeLeft, setTimeLeft] = useState(15);
-  const [timeoutText, setTimeoutText] = useState("");
-  const [track] = useState(songs[0]);
+
+  const [track, setTrack] = useState(songs[0]);
+
   const [fatalityOpen, setFatalityOpen] = useState(false);
   const [fatalityWinner, setFatalityWinner] = useState(null);
   const [fatalityPhase, setFatalityPhase] = useState("idle");
   const [isMobile, setIsMobile] = useState(false);
-
-  const roundFxRef = useRef(null);
-  const resetRoundRef = useRef(null);
-  const musicTimeoutRef = useRef(null);
-  const timerRef = useRef(null);
-  const timeoutLossRef = useRef(false);
-  const fatalityShownRef = useRef(false);
   const fatalityTimeoutRef = useRef(null);
   const impactTimeoutRef = useRef(null);
-  const resetRoundKeyRef = useRef("");
-  const moveLockRef = useRef(false);
 
   const [playHover] = useSound("/sounds/btnSound.mp3", {
     volume: 0.25,
@@ -143,331 +249,372 @@ export default function ArenaOnlineClient() {
     preload: true,
   });
 
-  const player1 = useMemo(
-    () => players.find((player) => player.slot === 1) || null,
-    [players],
-  );
+  function nextSong() {
+    setTrack(getRandomSong());
+  }
 
-  const player2 = useMemo(
-    () => players.find((player) => player.slot === 2) || null,
-    [players],
-  );
+  const startCinematicMusic = useCallback(
+    (delay = 0) => {
+      if (!musicOn) return;
 
-  const currentPlayer = useMemo(
-    () => players.find((player) => player.id === session?.playerId) || null,
-    [players, session],
-  );
+      clearTimeout(musicTimeoutRef.current);
 
-  const player1Character = getCharacter(player1?.character_id);
-  const player2Character = getCharacter(player2?.character_id);
-  const board = Array.isArray(room?.board) ? room.board : Array(9).fill(null);
-  const winningLine = getWinningLine(board);
-  const isAdmin = currentPlayer?.role === "admin";
-  const isMyTurn =
-    currentPlayer &&
-    room?.turn === currentPlayer.slot &&
-    room?.winner === null &&
-    !room?.match_winner &&
-    !introOpen;
-
-  const currentTurnName = room?.turn === 1 ? player1?.name : player2?.name;
-  const matchWinnerPlayer =
-    room?.match_winner === 1
-      ? player1
-      : room?.match_winner === 2
-        ? player2
-        : null;
-  const WinnerIcon =
-    room?.match_winner === 1 ? player1Character?.icon : player2Character?.icon;
-  const perfectWinner =
-    room?.match_winner === 1
-      ? room?.hp1 === room?.lives_to_win
-      : room?.match_winner === 2
-        ? room?.hp2 === room?.lives_to_win
-        : false;
-  const showWinModal = Boolean(room?.match_winner && !fatalityOpen);
-
-  const fetchRoomState = useCallback(
-    async (roomId) => {
-      const [
-        { data: roomData, error: roomError },
-        { data: playerData, error: playersError },
-      ] = await Promise.all([
-        supabase.from("rooms").select("*").eq("id", roomId).single(),
-        supabase
-          .from("players")
-          .select("*")
-          .eq("room_id", roomId)
-          .eq("connected", true)
-          .order("slot", { ascending: true }),
-      ]);
-
-      if (roomError || playersError) {
-        setError(
-          roomError?.message ||
-            playersError?.message ||
-            "No se pudo cargar la sala",
-        );
-        return;
-      }
-
-      if (roomData.status === "lobby") {
-        router.replace("/lobby");
-        return;
-      }
-
-      if (roomData.status === "select") {
-        router.replace("/select-online");
-        return;
-      }
-
-      if (roomData.status === "ended") {
-        clearOnlineSession();
-        router.replace("/mode");
-        return;
-      }
-
-      setRoom(roomData);
-      setPlayers(playerData || []);
-      moveLockRef.current = false;
+      musicTimeoutRef.current = setTimeout(async () => {
+        try {
+          await unlockAudio();
+          stopAllAudio();
+          stopWinnerTheme();
+          playCinematic();
+        } catch (error) {
+          console.error("No se pudo iniciar la música cinemática:", error);
+        }
+      }, delay);
     },
-    [router],
+    [musicOn, playCinematic, stopWinnerTheme],
   );
 
-  useEffect(() => {
-    let active = true;
-    const savedSession = getOnlineSession();
+  const startArenaMusic = useCallback(
+    (delay = 0) => {
+      if (!musicOn) return;
 
-    if (!savedSession?.roomId || !savedSession?.playerId) {
-      router.replace("/lobby");
+      clearTimeout(musicTimeoutRef.current);
 
-      return () => {
-        active = false;
-      };
+      musicTimeoutRef.current = setTimeout(async () => {
+        try {
+          await unlockAudio();
+          stopAllAudio();
+          stopCinematic();
+          playMusic();
+        } catch (error) {
+          console.error("No se pudo iniciar la música de arena:", error);
+        }
+      }, delay);
+    },
+    [musicOn, playMusic],
+  );
+
+  const startFatalityCinematic = useCallback(
+    (winnerNum) => {
+      clearTimeout(fatalityTimeoutRef.current);
+      clearTimeout(impactTimeoutRef.current);
+
+      setFatalityWinner(winnerNum);
+      setFatalityOpen(true);
+      setFatalityPhase("intro");
+      setLocked(true);
+
+      stopAllAudio();
+      playFatality();
+
+      impactTimeoutRef.current = setTimeout(() => {
+        setFatalityPhase("impact");
+        playImpact();
+      }, 1400);
+
+      fatalityTimeoutRef.current = setTimeout(() => {
+        setFatalityOpen(false);
+        setFatalityPhase("idle");
+        setMatchWinner(winnerNum);
+      }, 2000);
+    },
+    [playFatality, playImpact],
+  );
+
+  const resetRound = useCallback(() => {
+    setBoard(emptyBoard);
+    setWinner(null);
+    setLocked(false);
+    setTurn(1);
+    setTimeLeft(15);
+    setRound((r) => r + 1);
+    setShowRoundFx(true);
+    setTimeoutText("");
+  }, []);
+
+  const loseHeart = useCallback(
+    (playerLose) => {
+      setBreakingHeart(playerLose);
+
+      setTimeout(() => {
+        const winnerNum = playerLose === 1 ? 2 : 1;
+        const winnerHasAllHearts =
+          winnerNum === 1 ? hp1 === winsToVictory : hp2 === winsToVictory;
+
+        if (playerLose === 1) {
+          setHp1((prev) => {
+            const newHp = prev - 1;
+            return newHp;
+          });
+        } else {
+          setHp2((prev) => {
+            const newHp = prev - 1;
+            return newHp;
+          });
+        }
+
+        const loserHpAfter = playerLose === 1 ? hp1 - 1 : hp2 - 1;
+
+        if (loserHpAfter <= 0) {
+          setBreakingHeart(null);
+
+          if (winnerHasAllHearts) {
+            startFatalityCinematic(winnerNum);
+          } else {
+            setMatchWinner(winnerNum);
+          }
+
+          return;
+        }
+
+        setBreakingHeart(null);
+        setLocked(true);
+
+        timeoutRef.current = setTimeout(() => {
+          resetRound();
+        }, 1200);
+      }, 500);
+    },
+    [hp1, hp2, winsToVictory, resetRound, startFatalityCinematic],
+  );
+
+  const handleTimeout = useCallback(() => {
+    setLocked(true);
+
+    const loser = turn;
+
+    setTimeoutText(
+      loser === 1
+        ? `${player1.name} ${dict.arena.timeoutLose}`
+        : `${player2.name} ${dict.arena.timeoutLose}`,
+    );
+
+    loseHeart(loser);
+  }, [turn, player1, player2, loseHeart]);
+
+  function handleMove(index, fromAI = false) {
+    if (gameMode === "ai" && turn === 2 && !fromAI) return;
+
+    if (locked || board[index] || matchWinner || introOpen) return;
+
+    setLocked(true);
+
+    playPunch();
+
+    const newBoard = [...board];
+    newBoard[index] = turn;
+    setBoard(newBoard);
+
+    let foundWinner = null;
+
+    for (const line of winLines) {
+      const [a, b, c] = line;
+
+      if (
+        newBoard[a] &&
+        newBoard[a] === newBoard[b] &&
+        newBoard[a] === newBoard[c]
+      ) {
+        foundWinner = newBoard[a];
+      }
     }
 
-    Promise.resolve().then(() => {
-      if (!active) return;
-      setSession(savedSession);
-      fetchRoomState(savedSession.roomId);
+    if (foundWinner) {
+      setWinner(foundWinner);
+      setLocked(true);
+      playWin();
+
+      loseHeart(foundWinner === 1 ? 2 : 1);
+      return;
+    }
+
+    if (newBoard.every(Boolean)) {
+      setLocked(true);
+      setTimeout(() => resetRound(), 1300);
+      return;
+    }
+
+    setTurn(turn === 1 ? 2 : 1);
+    setTimeLeft(15);
+
+    setTimeout(() => {
+      setLocked(false);
+    }, 120);
+  }
+
+  function renderHearts(hp, playerNum) {
+    return Array.from({ length: winsToVictory }).map((_, i) => {
+      const lastHeart = i === hp - 1;
+      const breaking = breakingHeart === playerNum && lastHeart;
+
+      return (
+        <motion.div
+          key={i}
+          animate={
+            breaking
+              ? { scale: [1, 1.5, 0], rotate: [0, -25, 25, 0] }
+              : { scale: 1 }
+          }
+          transition={{ duration: 0.45 }}
+        >
+          {breaking ? (
+            <FaHeartBroken className="text-red-500 text-lg" />
+          ) : i < hp ? (
+            <FaHeart className="text-red-500 text-lg" />
+          ) : (
+            <FaRegHeart className="text-black text-lg opacity-70" />
+          )}
+        </motion.div>
+      );
     });
+  }
 
-    return () => {
-      active = false;
-    };
-  }, [fetchRoomState, router]);
+  function restartBattle() {
+    clearTimeout(timeoutRef.current);
+    clearTimeout(musicTimeoutRef.current);
+    clearTimeout(roundFxRef.current);
+    clearTimeout(timerRef.current);
+    clearTimeout(fatalityTimeoutRef.current);
+    clearTimeout(impactTimeoutRef.current);
+
+    stopAllAudio();
+    playHover();
+    Howler.stop();
+    nextSong();
+
+    // Reset cinemática fatality
+    setFatalityOpen(false);
+    setFatalityWinner(null);
+    setFatalityPhase("idle");
+
+    // Reset tablero / match
+    setBoard(emptyBoard);
+    setTurn(1);
+    setLocked(true);
+    setRound(1);
+    setWinner(null);
+    setMatchWinner(null);
+
+    // Reset vida
+    setHp1(winsToVictory);
+    setHp2(winsToVictory);
+    setBreakingHeart(null);
+
+    // Reset timer / textos
+    setTimeLeft(15);
+    setTimeoutText("");
+
+    // Intro
+    setIntroOpen(true);
+    setIntroStep("ROUND 1");
+
+    // Round FX
+    setShowRoundFx(true);
+
+    roundFxRef.current = setTimeout(() => {
+      setShowRoundFx(false);
+    }, 1200);
+
+    // Intro animación
+    setTimeout(() => setIntroStep("ROUND 1"), 1000);
+
+    setTimeout(() => setIntroStep("FIGHT"), 2000);
+
+    setTimeout(() => {
+      setIntroOpen(false);
+      setLocked(false);
+    }, 3000);
+  }
 
   useEffect(() => {
-    if (!session?.roomId) return;
-
-    const channel = supabase
-      .channel(`online-arena-${session.roomId}`)
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "rooms",
-          filter: `id=eq.${session.roomId}`,
-        },
-        () => fetchRoomState(session.roomId),
-      )
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "players",
-          filter: `room_id=eq.${session.roomId}`,
-        },
-        () => fetchRoomState(session.roomId),
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [fetchRoomState, session?.roomId]);
+    if (!player1 || !player2) {
+      router.replace(`/${dict.locale}/select`);
+    }
+  }, [player1, player2, router, dict.locale]);
 
   useEffect(() => {
-    if (!introOpen) return;
+    if (matchWinner) {
+      stopAllAudio();
+    }
+  }, [matchWinner]);
 
+  useEffect(() => {
+    if (matchWinner) {
+      stopAllAudio();
+      playWinnerTheme();
+    } else {
+      stopWinnerTheme();
+    }
+
+    return () => {
+      stopWinnerTheme();
+    };
+  }, [matchWinner, playWinnerTheme, stopWinnerTheme]);
+
+  useEffect(() => {
+    if (locked || matchWinner) return;
+
+    if (timeLeft <= 0) {
+      const t = setTimeout(() => {
+        handleTimeout();
+      }, 0);
+
+      return () => clearTimeout(t);
+    }
+
+    timerRef.current = setTimeout(() => {
+      setTimeLeft((v) => v - 1);
+    }, 1000);
+
+    return () => clearTimeout(timerRef.current);
+  }, [timeLeft, locked, matchWinner, handleTimeout]);
+
+  useEffect(() => {
+    roundFxRef.current = setTimeout(() => {
+      setShowRoundFx(false);
+    }, 1200);
+
+    return () => clearTimeout(roundFxRef.current);
+  }, [round]);
+
+  useEffect(() => {
+    if (!musicOn) return;
+
+    if (introOpen) {
+      startCinematicMusic(0);
+    } else if (!matchWinner) {
+      startArenaMusic(0);
+    }
+  }, [introOpen, musicOn, matchWinner, startArenaMusic, startCinematicMusic]);
+
+  // Cinematica de inicio
+  useEffect(() => {
     const t1 = setTimeout(() => setIntroStep("ROUND 1"), 1000);
     const t2 = setTimeout(() => setIntroStep("FIGHT"), 2000);
-    const t3 = setTimeout(() => setIntroOpen(false), 3800);
+    const t3 = setTimeout(() => {
+      setIntroOpen(false);
+      setLocked(false);
+    }, 3800);
 
     return () => {
       clearTimeout(t1);
       clearTimeout(t2);
       clearTimeout(t3);
       clearTimeout(musicTimeoutRef.current);
-      clearTimeout(fatalityTimeoutRef.current);
-      clearTimeout(impactTimeoutRef.current);
       stopAllAudio();
     };
-  }, [introOpen]);
+  }, []);
 
   useEffect(() => {
-    if (!room?.id || room.winner !== null || room.match_winner) return;
-
-    let active = true;
-
-    clearTimeout(roundFxRef.current);
-
-    Promise.resolve().then(() => {
-      if (!active) return;
-
-      setShowRoundFx(true);
-      setTimeoutText("");
-    });
-
-    roundFxRef.current = setTimeout(() => {
-      setShowRoundFx(false);
-      setTimeoutText("");
-    }, 1200);
-
     return () => {
-      active = false;
-      clearTimeout(roundFxRef.current);
-    };
-  }, [room?.id, room?.round, room?.winner, room?.match_winner]);
-
-  useEffect(() => {
-    let active = true;
-
-    Promise.resolve().then(() => {
-      if (!active) return;
-
-      setTimeLeft(15);
-      setTimeoutText("");
-    });
-
-    timeoutLossRef.current = false;
-
-    return () => {
-      active = false;
-    };
-  }, [room?.round, room?.turn]);
-
-  useEffect(() => {
-    if (!musicOn) {
+      clearTimeout(timeoutRef.current);
       clearTimeout(musicTimeoutRef.current);
-      stopMusic();
-      stopCinematic();
-      stopWinnerTheme();
-      return;
-    }
-
-    clearTimeout(musicTimeoutRef.current);
-
-    musicTimeoutRef.current = setTimeout(async () => {
-      await unlockAudio();
-      stopAllAudio();
-
-      if (room?.match_winner && !fatalityOpen) {
-        playWinnerTheme();
-      } else if (fatalityOpen) {
-        return;
-      } else if (introOpen) {
-        playCinematic();
-      } else {
-        playMusic();
-      }
-    }, 0);
-
-    return () => clearTimeout(musicTimeoutRef.current);
-  }, [
-    introOpen,
-    fatalityOpen,
-    musicOn,
-    playCinematic,
-    playMusic,
-    playWinnerTheme,
-    room?.match_winner,
-    stopCinematic,
-    stopMusic,
-    stopWinnerTheme,
-  ]);
-
-  useEffect(() => {
-    if (
-      !room ||
-      room.winner === null ||
-      room.winner === undefined ||
-      room.match_winner ||
-      !session?.playerId
-    ) {
-      return;
-    }
-
-    const resetKey = `${room.id}-${room.round}-${room.winner}`;
-
-    if (resetRoundKeyRef.current === resetKey) return;
-
-    resetRoundKeyRef.current = resetKey;
-
-    if (room.winner !== 0) {
-      playWin();
-    }
-
-    clearTimeout(resetRoundRef.current);
-    resetRoundRef.current = setTimeout(async () => {
-      await supabase.rpc("reset_online_round", {
-        player_id_arg: session.playerId,
-      });
-    }, 1800);
-  }, [
-    playWin,
-    room,
-    room?.id,
-    room?.round,
-    room?.winner,
-    room?.match_winner,
-    session?.playerId,
-  ]);
-
-  useEffect(() => {
-    if (!room?.match_winner) {
-      fatalityShownRef.current = false;
-
-      Promise.resolve().then(() => {
-        setFatalityOpen(false);
-        setFatalityWinner(null);
-        setFatalityPhase("idle");
-      });
-
-      return;
-    }
-
-    if (!perfectWinner || fatalityShownRef.current) return;
-
-    fatalityShownRef.current = true;
-    clearTimeout(fatalityTimeoutRef.current);
-    clearTimeout(impactTimeoutRef.current);
-    clearTimeout(musicTimeoutRef.current);
-
-    setFatalityWinner(room.match_winner);
-    setFatalityOpen(true);
-    setFatalityPhase("intro");
-
-    stopAllAudio();
-    playFatality();
-
-    impactTimeoutRef.current = setTimeout(() => {
-      setFatalityPhase("impact");
-      playImpact();
-    }, 1400);
-
-    fatalityTimeoutRef.current = setTimeout(() => {
-      setFatalityOpen(false);
-      setFatalityPhase("idle");
-    }, 2400);
-
-    return () => {
+      clearTimeout(roundFxRef.current);
+      clearTimeout(timerRef.current);
       clearTimeout(fatalityTimeoutRef.current);
       clearTimeout(impactTimeoutRef.current);
+      stopAllAudio();
     };
-  }, [perfectWinner, playFatality, playImpact, room?.match_winner]);
+  }, []);
 
   useEffect(() => {
     const checkMobile = () => {
@@ -481,173 +628,81 @@ export default function ArenaOnlineClient() {
   }, []);
 
   useEffect(() => {
-    clearTimeout(timerRef.current);
+    if (!musicOn) {
+      clearTimeout(musicTimeoutRef.current);
+      stopMusic();
+      stopCinematic();
+      stopWinnerTheme();
+    }
+  }, [musicOn, stopMusic, stopCinematic, stopWinnerTheme]);
 
-    if (introOpen || !room || room.winner !== null || room.match_winner) return;
+  //Modo: IA
+  useEffect(() => {
+    if (gameMode !== "ai" || turn !== 2 || locked || introOpen || matchWinner)
+      return;
 
-    if (timeLeft <= 0) {
-      const loserName = room.turn === 1 ? player1?.name : player2?.name;
+    const free = getFreeCells(board);
 
-      Promise.resolve().then(() => {
-        setTimeoutText(`${loserName} perdio un corazon`);
-      });
+    if (!free.length) return;
 
-      if (session?.playerId && !timeoutLossRef.current) {
-        timeoutLossRef.current = true;
+    const timer = setTimeout(() => {
+      let move;
 
-        Promise.resolve().then(async () => {
-          const { error: rpcError } = await supabase.rpc(
-            "apply_online_timeout_loss",
-            {
-              player_id_arg: session.playerId,
-              expected_turn_arg: room.turn,
-            },
-          );
-
-          if (rpcError) {
-            setError(rpcError.message);
-          }
-        });
+      if (aiDifficulty === "facil") {
+        move = free[Math.floor(Math.random() * free.length)];
       }
 
-      return;
-    }
+      if (aiDifficulty === "normal") {
+        const smart = Math.random() < 0.7;
 
-    timerRef.current = setTimeout(() => {
-      setTimeLeft((value) => value - 1);
-    }, 1000);
+        move = smart
+          ? getSmartMove(board)
+          : free[Math.floor(Math.random() * free.length)];
+      }
 
-    return () => clearTimeout(timerRef.current);
-  }, [
-    introOpen,
-    player1?.name,
-    player2?.name,
-    room,
-    room?.match_winner,
-    room?.turn,
-    room?.winner,
-    session?.playerId,
-    timeLeft,
-  ]);
+      if (aiDifficulty === "dificil") {
+        move = getBestMove(board);
+      }
 
-  useEffect(() => {
-    return () => {
-      clearTimeout(roundFxRef.current);
-      clearTimeout(resetRoundRef.current);
-      clearTimeout(musicTimeoutRef.current);
-      clearTimeout(timerRef.current);
-      clearTimeout(fatalityTimeoutRef.current);
-      clearTimeout(impactTimeoutRef.current);
-      stopAllAudio();
-    };
-  }, []);
+      handleMove(move, true);
+    }, 700);
 
-  async function handleMove(index) {
-    if (moveLockRef.current) return;
+    return () => clearTimeout(timer);
+  }, [turn, board, locked, introOpen, matchWinner, gameMode, aiDifficulty]);
 
-    if (!isMyTurn || board[index]) return;
+  if (!player1 || !player2) return null;
 
-    moveLockRef.current = true;
+  const Icon1 = player1.icon;
+  const Icon2 = player2.icon;
 
-    playPunch();
-    setError("");
+  const currentTurn = turn === 1 ? player1.name : player2.name;
 
-    const { error: rpcError } = await supabase.rpc("play_online_move", {
-      player_id_arg: currentPlayer.id,
-      cell_index_arg: index,
-    });
+  const WinnerIcon = matchWinner === 1 ? Icon1 : Icon2;
+  const iaName =
+    aiDifficulty === "facil"
+      ? dict.arena.iaEasy
+      : aiDifficulty === "normal"
+        ? dict.arena.iaNormal
+        : dict.arena.iaHard;
 
-    if (rpcError) {
-      setError(rpcError.message);
-    }
-  }
+  const winnerName =
+    gameMode === "ai"
+      ? matchWinner === 1
+        ? dict.arena.player
+        : iaName
+      : matchWinner === 1
+        ? dict.arena.player1
+        : dict.arena.player2;
 
-  async function leaveRoom() {
-    if (!session?.playerId) return;
+  let winningLine = null;
 
-    playArena();
-    await supabase.rpc("leave_online_room", {
-      player_id_arg: session.playerId,
-    });
+  for (const line of winLines) {
+    const [a, b, c] = line;
 
-    clearOnlineSession();
-    stopAllAudio();
-    router.push("/mode");
-  }
-
-  async function rematchBattle() {
-    if (!session?.playerId) return;
-
-    playHover();
-    setError("");
-
-    const { error: rpcError } = await supabase.rpc("rematch_online_game", {
-      player_id_arg: session.playerId,
-    });
-
-    if (rpcError) {
-      setError(rpcError.message);
-      return;
-    }
-
-    setTimeLeft(15);
-    setTimeoutText("");
-    setIntroOpen(true);
-    setIntroStep("ROUND 1");
-    fatalityShownRef.current = false;
-  }
-
-  async function changeCharacters() {
-    if (!session?.playerId) return;
-
-    playArena();
-    setError("");
-
-    const { error: rpcError } = await supabase.rpc("back_to_online_select", {
-      player_id_arg: session.playerId,
-    });
-
-    if (rpcError) {
-      setError(rpcError.message);
+    if (board[a] && board[a] === board[b] && board[a] === board[c]) {
+      winningLine = line;
     }
   }
-
-  function renderHearts(hp, playerNum) {
-    return Array.from({ length: room?.lives_to_win || 3 }).map((_, index) => {
-      const breaking =
-        room?.winner &&
-        room?.winner !== 0 &&
-        room?.winner !== playerNum &&
-        index === hp;
-
-      return (
-        <motion.div
-          key={index}
-          animate={
-            breaking
-              ? { scale: [1, 1.5, 0], rotate: [0, -25, 25, 0] }
-              : { scale: 1 }
-          }
-          transition={{ duration: 0.45 }}
-        >
-          {breaking ? (
-            <FaHeartBroken className="text-red-500 text-lg" />
-          ) : index < hp ? (
-            <FaHeart className="text-red-500 text-lg" />
-          ) : (
-            <FaRegHeart className="text-black text-lg opacity-70" />
-          )}
-        </motion.div>
-      );
-    });
-  }
-
-  if (!room || !player1 || !player2 || !player1Character || !player2Character) {
-    return null;
-  }
-
-  const Icon1 = player1Character.icon;
-  const Icon2 = player2Character.icon;
 
   return (
     <main className="min-h-screen px-3 py-4 sm:px-4 md:px-8 flex items-center justify-center">
@@ -664,28 +719,31 @@ export default function ArenaOnlineClient() {
               className="absolute inset-0 z-50 bg-[#0A1326] flex flex-col items-center justify-center px-4"
             >
               <p className="text-3xl text-center md:text-5xl font-black tracking-[.25em] text-white mb-10 drop-shadow-[0_0_18px_rgba(255,255,255,.65)]">
-                BATTLE FOR {room.lives_to_win}{" "}
-                {room.lives_to_win === 1 ? "LIFE" : "LIVES"}
+                {dict.arena.battleFor} {winsToVictory}{" "}
+                {winsToVictory === 1 ? dict.arena.life : dict.arena.lives}
               </p>
 
+              {/* Centro */}
               <div className="grid grid-cols-3 items-center gap-2 sm:gap-4 w-full max-w-5xl mt-7">
+                {/* Player 1 */}
                 <motion.div
                   initial={{ x: -220, opacity: 0 }}
                   animate={{ x: 0, opacity: 1 }}
                   transition={{ duration: 0.6 }}
                   className="rounded-3xl border border-blue-400 bg-blue-400/10 shadow-[0_0_22px_rgba(59,130,246,.35)] p-5 sm:p-6 text-center min-w-0"
                 >
-                  <p className="text-[10px] sm:text-sm tracking-[.25em] text-blue-300 mb-4 font-bold break-words">
-                    {player1.name}
+                  <p className="text-[10px] sm:text-sm tracking-[.25em] text-blue-300 mb-4 font-bold">
+                    {gameMode === "ai" ? dict.arena.player : dict.arena.player1}
                   </p>
 
                   <Icon1 className="text-7xl mx-auto text-blue-300" />
 
                   <p className="mt-2 sm:mt-4 font-black text-xs sm:text-base break-words">
-                    {player1Character.name}
+                    {player1.name}
                   </p>
                 </motion.div>
 
+                {/* VS */}
                 <motion.div
                   initial={{ scale: 0 }}
                   animate={{ scale: 1.2 }}
@@ -695,30 +753,32 @@ export default function ArenaOnlineClient() {
                   VS
                 </motion.div>
 
+                {/* Player 2 */}
                 <motion.div
                   initial={{ x: 220, opacity: 0 }}
                   animate={{ x: 0, opacity: 1 }}
                   transition={{ duration: 0.6 }}
                   className="rounded-3xl border border-red-500 bg-red-500/10 shadow-[0_0_22px_rgba(255,0,0,.35)] p-5 sm:p-6 text-center min-w-0"
                 >
-                  <p className="text-[10px] sm:text-sm tracking-[.25em] text-red-400 mb-4 font-bold break-words">
-                    {player2.name}
+                  <p className="text-[9px] sm:text-sm tracking-[.25em] text-red-400 mb-4 font-bold">
+                    {gameMode === "ai" ? iaName : dict.arena.player2}
                   </p>
 
                   <Icon2 className="text-7xl mx-auto text-red-500" />
 
                   <p className="mt-2 sm:mt-4 font-black text-xs sm:text-base break-words">
-                    {player2Character.name}
+                    {player2.name}
                   </p>
                 </motion.div>
               </div>
 
+              {/* Texto del round y del fight*/}
               <motion.div
                 key={introStep}
                 initial={{ opacity: 0, scale: 0.7 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ duration: 0.4 }}
-                className="mt-12 text-5xl md:text-7xl font-black text-white drop-shadow-[0_0_22px_rgba(59,130,246,.8)]"
+                className="mt-12 text-3xl md:text-5xl font-black text-white tracking-[.25em] drop-shadow-[0_0_20px_rgba(59,130,246,.7)] animate-pulse"
               >
                 {introStep}
               </motion.div>
@@ -728,124 +788,131 @@ export default function ArenaOnlineClient() {
 
         {!introOpen && (
           <>
-            <div className="grid grid-cols-[1fr_auto_1fr] items-start gap-2 sm:gap-4">
+            {/* Top */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 text-center items-center">
               <div
                 className={`rounded-3xl p-3 sm:p-4 border w-full max-w-[220px] mx-auto transition-all duration-500 ${
-                  room.hp1 === 1
+                  winsToVictory > 1 && hp1 === 1
                     ? "border-red-500 bg-red-500/10 animate-pulse shadow-[0_0_28px_rgba(255,0,0,.45)] scale-105"
-                    : room.turn === 1 &&
-                        room.winner === null &&
-                        !room.match_winner
+                    : turn === 1 && !locked && !matchWinner
                       ? "border-blue-400 shadow-[0_0_22px_rgba(59,130,246,.35)] bg-blue-400/10 scale-105"
                       : "border-white/10"
                 }`}
               >
                 <Icon1 className="text-4xl sm:text-5xl mx-auto text-blue-300" />
-                <p className="text-center font-bold break-words">
-                  {player1.name}
-                </p>
+                <p>{player1.name}</p>
 
                 <div className="flex gap-1 justify-center mt-2 flex-wrap">
-                  {renderHearts(room.hp1, 1)}
+                  {renderHearts(hp1, 1)}
                 </div>
               </div>
 
-              <div className="text-center">
-                <div className="flex items-center justify-center gap-3">
+              <div>
+                <div className="flex justify-center gap-3 items-center flex-wrap">
                   <button
                     onClick={() => {
+                      clearTimeout(timeoutRef.current);
+                      clearTimeout(musicTimeoutRef.current);
+                      clearTimeout(roundFxRef.current);
+                      clearTimeout(timerRef.current);
+
                       playArena();
-                      setExitOpen(true);
+                      stopAllAudio();
+                      resetMatch();
+                      router.push(`/${dict.locale}/select`);
+                      clearTimeout(fatalityTimeoutRef.current);
+                      clearTimeout(impactTimeoutRef.current);
+                      setFatalityOpen(false);
+                      setFatalityWinner(null);
+                      setFatalityPhase("idle");
                     }}
-                    className="p-2 rounded-xl bg-white/5 hover:bg-white/10 transition"
-                    title="Salir de la partida"
+                    className="p-2 rounded-xl bg-white/5 hover:bg-white/10 transition shrink-0"
+                    title="Salir"
                   >
-                    <HiArrowLeftOnRectangle className="text-xl text-blue-300" />
+                    <HiArrowLeftOnRectangle className="text-lg text-red-500" />
                   </button>
 
                   <p className="text-white tracking-[.18em] sm:tracking-[.25em] text-xs sm:text-sm lg:text-sm font-black glow-text drop-shadow-[0_0_18px_rgba(59,130,246,.65)]">
-                    Batalla por {room.lives_to_win}{" "}
-                    {room.lives_to_win === 1 ? "vida" : "vidas"}
+                    {dict.arena.battleFor} {winsToVictory}{" "}
+                    {winsToVictory === 1 ? dict.arena.life : dict.arena.lives}
                   </p>
 
                   <button
                     onClick={() => setMusicOn(!musicOn)}
-                    className="p-2 rounded-xl bg-white/5 hover:bg-white/10 transition"
+                    className="p-2 rounded-xl bg-white/5 hover:bg-white/10 transition shrink-0"
                   >
                     {musicOn ? (
-                      <HiSpeakerWave className="text-xl text-blue-300" />
+                      <HiSpeakerWave className="text-blue-500 text-lg" />
                     ) : (
-                      <HiSpeakerXMark className="text-xl text-red-500" />
+                      <HiSpeakerXMark className="text-red-500 text-lg" />
                     )}
                   </button>
                 </div>
 
-                <p className="mt-4 text-xs tracking-[.2em] text-white/60">
-                  ROUND {room.round}
-                </p>
-                <h1 className="mt-1 text-xl sm:text-3xl font-black text-white">
-                  Turno de {currentTurnName}
-                </h1>
+                <motion.p
+                  animate={{
+                    scale: [1, 1.05, 1],
+                    opacity: [0.8, 1, 0.8],
+                  }}
+                  transition={{
+                    duration: 1,
+                    repeat: Infinity,
+                  }}
+                  className="mt-3 text-sm font-bold tracking-wide"
+                >
+                  {matchWinner
+                    ? dict.arena.completedMatch
+                    : winner
+                      ? dict.arena.completedRound
+                      : locked
+                        ? dict.arena.loading
+                        : `${dict.arena.turnOf} ${currentTurn}`}
+                </motion.p>
 
-                <div className="mx-auto mt-3 w-28 sm:w-36">
-                  <div className="h-2 overflow-hidden rounded-full bg-black/50">
-                    <div
-                      className={`h-full transition-all duration-500 ${
-                        timeLeft <= 5 ? "bg-red-500" : "bg-blue-400"
-                      }`}
-                      style={{
-                        width: `${Math.max(0, (timeLeft / 15) * 100)}%`,
-                      }}
-                    />
-                  </div>
+                <p className="mt-2 text-xs opacity-70">ROUND {round}</p>
 
-                  <p className="mt-1 text-xs opacity-70">{timeLeft}s</p>
+                <div className="mt-3 w-full h-2 rounded-full bg-white/5 overflow-hidden">
+                  <div
+                    className="h-full bg-blue-500 transition-all duration-1000"
+                    style={{
+                      width: `${(timeLeft / 15) * 100}%`,
+                    }}
+                  />
                 </div>
 
-                {isMyTurn ? (
-                  <p className="mt-1 text-xs text-blue-300">Tu turno</p>
-                ) : (
-                  <p className="mt-1 text-xs text-white/50">Esperando rival</p>
-                )}
+                <p className="mt-1 text-xs opacity-70">{timeLeft}s</p>
               </div>
 
               <div
                 className={`rounded-3xl p-3 sm:p-4 border w-full max-w-[220px] mx-auto transition-all duration-500 ${
-                  room.hp2 === 1
+                  winsToVictory > 1 && hp2 === 1
                     ? "border-red-500 bg-red-500/10 animate-pulse shadow-[0_0_28px_rgba(255,0,0,.45)] scale-105"
-                    : room.turn === 2 &&
-                        room.winner === null &&
-                        !room.match_winner
+                    : turn === 2 && !locked && !matchWinner
                       ? "border-red-500 shadow-[0_0_22px_rgba(255,0,0,.35)] bg-red-500/10 scale-105"
                       : "border-white/10"
                 }`}
               >
                 <Icon2 className="text-4xl sm:text-5xl mx-auto text-red-500" />
-                <p className="text-center font-bold break-words">
-                  {player2.name}
-                </p>
+                <p>{player2.name}</p>
 
                 <div className="flex gap-1 justify-center mt-2 flex-wrap">
-                  {renderHearts(room.hp2, 2)}
+                  {renderHearts(hp2, 2)}
                 </div>
               </div>
             </div>
 
-            {error && (
-              <p className="mx-auto mt-5 max-w-2xl rounded-2xl border border-red-500/50 bg-red-500/10 px-4 py-3 text-center text-sm font-bold text-red-200">
-                {error}
-              </p>
-            )}
-
+            {/* Board */}
             <div className="grid grid-cols-3 gap-2 sm:gap-3 md:gap-4 mt-6 sm:mt-10 max-w-[320px] sm:max-w-xl mx-auto">
-              {board.map((cell, index) => (
+              {board.map((cell, i) => (
                 <motion.button
-                  key={index}
-                  whileHover={{ scale: isMyTurn && !cell ? 1.05 : 1 }}
-                  whileTap={{ scale: isMyTurn && !cell ? 0.95 : 1 }}
-                  onClick={() => handleMove(index)}
-                  disabled={!isMyTurn || Boolean(cell)}
-                  className="aspect-square rounded-3xl sm:rounded-3xl panel border border-cyan-400/30 flex items-center justify-center relative min-h-[78px] sm:min-h-[110px] disabled:cursor-default"
+                  key={i}
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => handleMove(i)}
+                  disabled={
+                    locked || matchWinner || (gameMode === "ai" && turn === 2)
+                  }
+                  className="aspect-square rounded-3xl sm:rounded-3xl panel border border-cyan-400/30 flex items-center justify-center relative min-h-[78px] sm:min-h-[110px]"
                 >
                   {cell === 1 && (
                     <Icon1 className="text-3xl sm:text-5xl text-blue-300 drop-shadow-[0_0_12px_rgba(59,130,246,.95)]" />
@@ -855,28 +922,27 @@ export default function ArenaOnlineClient() {
                     <Icon2 className="text-3xl sm:text-5xl text-red-500 drop-shadow-[0_0_12px_rgba(255,0,0,.95)]" />
                   )}
 
-                  {winningLine?.includes(index) && (
+                  {winningLine?.includes(i) && (
                     <div className="absolute inset-0 rounded-3xl border-2 border-blue-300 animate-pulse" />
                   )}
                 </motion.button>
               ))}
             </div>
 
+            {/* Round FX */}
             <AnimatePresence>
-              {(showRoundFx || timeoutText || room.winner === 0) &&
-                !room.match_winner && (
-                  <motion.div
-                    initial={{ opacity: 0, scale: 0.7 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0 }}
-                    className="absolute inset-0 bg-black/70 flex items-center justify-center z-30 px-4"
-                  >
-                    <h2 className="text-2xl sm:text-3xl md:text-4xl font-black text-center px-4 sm:px-6 leading-tight text-white drop-shadow-[0_0_18px_rgba(59,130,246,.65)]">
-                      {timeoutText ||
-                        (room.winner === 0 ? "EMPATE" : `ROUND ${room.round}`)}
-                    </h2>
-                  </motion.div>
-                )}
+              {(showRoundFx || timeoutText) && !matchWinner && (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.7 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="absolute inset-0 bg-black/70 flex items-center justify-center z-30 px-4"
+                >
+                  <h2 className="text-2xl sm:text-3xl md:text-4xl font-black text-center px-4 sm:px-6 leading-tight text-white drop-shadow-[0_0_18px_rgba(59,130,246,.65)]">
+                    {timeoutText || `ROUND ${round}`}
+                  </h2>
+                </motion.div>
+              )}
             </AnimatePresence>
           </>
         )}
@@ -889,7 +955,7 @@ export default function ArenaOnlineClient() {
               transition={{ duration: 0.45 }}
               className="text-3xl md:text-5xl font-black text-white tracking-[.2em] sm:tracking-[.35em] text-center px-2 drop-shadow-[0_0_18px_rgba(255,255,255,.65)]"
             >
-              PERFECT WIN
+              {dict.arena.perfectWin}
             </motion.p>
 
             <motion.p
@@ -898,11 +964,12 @@ export default function ArenaOnlineClient() {
               transition={{ duration: 0.45, delay: 0.18 }}
               className="mt-5 text-3xl md:text-6xl font-black text-red-500 tracking-[.22em] sm:tracking-[.3em] text-center px-2"
             >
-              FATALITY
+              {dict.arena.fatality}
             </motion.p>
 
             <div className="relative mt-8 sm:mt-12 w-full max-w-6xl px-3 sm:px-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-10 items-center">
+                {/* Card del ganador */}
                 <motion.div
                   initial={{
                     x: fatalityWinner === 1 ? -260 : 260,
@@ -960,6 +1027,7 @@ export default function ArenaOnlineClient() {
                   </div>
                 </motion.div>
 
+                {/* Card del perdedor */}
                 <motion.div
                   initial={{
                     x: fatalityWinner === 1 ? 260 : -260,
@@ -1004,6 +1072,7 @@ export default function ArenaOnlineClient() {
                       : "border-blue-400 bg-blue-400/10 shadow-[0_0_22px_rgba(59,130,246,.35)]"
                   }`}
                 >
+                  {/* Resplandor */}
                   {fatalityPhase === "impact" && (
                     <>
                       <motion.div
@@ -1056,62 +1125,75 @@ export default function ArenaOnlineClient() {
                     </>
                   )}
 
+                  {/* Lineas rotas */}
                   {fatalityPhase === "impact" && (
                     <>
+                      {/* Verticales principales */}
                       <motion.div
                         initial={{ opacity: 0, scaleY: 0 }}
                         animate={{ opacity: 1, scaleY: 1 }}
                         transition={{ duration: 0.25, delay: 0.05 }}
                         className="absolute left-[20%] top-0 bottom-0 w-[2px] bg-red-600 origin-top rotate-[12deg]"
                       />
+
                       <motion.div
                         initial={{ opacity: 0, scaleY: 0 }}
                         animate={{ opacity: 1, scaleY: 1 }}
                         transition={{ duration: 0.25, delay: 0.1 }}
                         className="absolute left-[38%] top-0 bottom-0 w-[2px] bg-red-600 origin-top rotate-[-6deg]"
                       />
+
                       <motion.div
                         initial={{ opacity: 0, scaleY: 0 }}
                         animate={{ opacity: 1, scaleY: 1 }}
                         transition={{ duration: 0.25, delay: 0.16 }}
                         className="absolute left-[55%] top-0 bottom-0 w-[2px] bg-red-600 origin-top rotate-[8deg]"
                       />
+
                       <motion.div
                         initial={{ opacity: 0, scaleY: 0 }}
                         animate={{ opacity: 1, scaleY: 1 }}
                         transition={{ duration: 0.25, delay: 0.22 }}
                         className="absolute left-[72%] top-0 bottom-0 w-[2px] bg-red-600 origin-top rotate-[16deg]"
                       />
+
+                      {/* Horizontales */}
                       <motion.div
                         initial={{ opacity: 0, scaleX: 0 }}
                         animate={{ opacity: 1, scaleX: 1 }}
                         transition={{ duration: 0.22, delay: 0.08 }}
                         className="absolute top-[26%] left-0 right-0 h-[2px] bg-red-600 origin-left rotate-[-8deg]"
                       />
+
                       <motion.div
                         initial={{ opacity: 0, scaleX: 0 }}
                         animate={{ opacity: 1, scaleX: 1 }}
                         transition={{ duration: 0.22, delay: 0.14 }}
                         className="absolute top-[46%] left-0 right-0 h-[2px] bg-red-600 origin-left rotate-[6deg]"
                       />
+
                       <motion.div
                         initial={{ opacity: 0, scaleX: 0 }}
                         animate={{ opacity: 1, scaleX: 1 }}
                         transition={{ duration: 0.22, delay: 0.2 }}
                         className="absolute top-[66%] left-0 right-0 h-[2px] bg-red-600 origin-left rotate-[-5deg]"
                       />
+
+                      {/* Diagonales extras */}
                       <motion.div
                         initial={{ opacity: 0, scaleY: 0 }}
                         animate={{ opacity: 1, scaleY: 1 }}
                         transition={{ duration: 0.24, delay: 0.12 }}
                         className="absolute left-[12%] top-[10%] bottom-[10%] w-[2px] bg-red-800 origin-top rotate-[28deg]"
                       />
+
                       <motion.div
                         initial={{ opacity: 0, scaleY: 0 }}
                         animate={{ opacity: 1, scaleY: 1 }}
                         transition={{ duration: 0.24, delay: 0.18 }}
                         className="absolute right-[14%] top-[12%] bottom-[12%] w-[2px] bg-red-800 origin-top rotate-[-28deg]"
                       />
+
                       <motion.div
                         initial={{ opacity: 0, scaleX: 0 }}
                         animate={{ opacity: 1, scaleX: 1 }}
@@ -1121,6 +1203,7 @@ export default function ArenaOnlineClient() {
                     </>
                   )}
 
+                  {/* contenido */}
                   <motion.div
                     animate={
                       fatalityPhase === "impact"
@@ -1143,6 +1226,7 @@ export default function ArenaOnlineClient() {
                       {fatalityWinner === 1 ? player2.name : player1.name}
                     </p>
 
+                    {/* Corazón roto mas polvo */}
                     {fatalityPhase === "impact" && (
                       <motion.div
                         initial={{ opacity: 0, scale: 0.8 }}
@@ -1164,79 +1248,56 @@ export default function ArenaOnlineClient() {
           </div>
         )}
 
-        {showWinModal && (
+        {/* Win modal */}
+        {matchWinner && (
           <div className="absolute inset-0 bg-black/75 flex items-center justify-center rounded-3xl p-3 sm:p-6 z-40">
             <motion.div
               initial={{ scale: 0.7, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               className="panel neon-border rounded-3xl p-5 sm:p-8 text-center w-full max-w-sm sm:max-w-md"
             >
-              {WinnerIcon && (
-                <WinnerIcon
-                  className={`text-6xl sm:text-7xl mx-auto animate-pulse ${
-                    room.match_winner === 1 ? "text-blue-300" : "text-red-500"
-                  }`}
-                />
-              )}
+              <WinnerIcon
+                className={`text-6xl sm:text-7xl mx-auto animate-pulse ${
+                  matchWinner === 1 ? "text-blue-300" : "text-red-500"
+                }`}
+              />
 
               <h2 className="text-xl sm:text-3xl font-black mt-4 glow-text break-words">
-                {matchWinnerPlayer?.name}
+                {winnerName}
               </h2>
 
-              <p className="mt-2 opacity-80">GANADOR DEL JUEGO</p>
+              <p className="mt-2 opacity-80">{dict.arena.winnerGame}</p>
 
               <div className="grid gap-4 mt-8">
                 <button
-                  onClick={rematchBattle}
+                  onClick={restartBattle}
                   className="py-3 sm:py-4 rounded-2xl bg-blue-500 text-white font-bold text-sm sm:text-base border border-blue-400 shadow-[0_0_22px_rgba(59,130,246,.35)] hover:scale-105 hover:shadow-[0_0_30px_rgba(59,130,246,.55)] transition-all duration-300"
                 >
-                  Revancha
+                  {dict.arena.rematch}
                 </button>
 
                 <button
-                  onClick={changeCharacters}
+                  onClick={() => {
+                    clearTimeout(timeoutRef.current);
+                    clearTimeout(musicTimeoutRef.current);
+                    clearTimeout(roundFxRef.current);
+                    clearTimeout(timerRef.current);
+                    playArena();
+                    stopAllAudio();
+                    resetMatch();
+                    router.push(`/${dict.locale}/select`);
+                    clearTimeout(fatalityTimeoutRef.current);
+                    clearTimeout(impactTimeoutRef.current);
+                    setFatalityOpen(false);
+                    setFatalityWinner(null);
+                    setFatalityPhase("idle");
+                  }}
                   className="py-3 sm:py-4 rounded-2xl bg-blue-900 text-white font-bold text-sm sm:text-base hover:scale-105 hover:shadow-[0_0_18px_rgba(59,130,246,.22)] transition-all duration-300"
                 >
-                  Cambiar personajes
-                </button>
-
-                <button
-                  onClick={() => setExitOpen(true)}
-                  className="py-3 sm:py-4 rounded-2xl bg-red-500 text-white font-bold text-sm sm:text-base border border-red-300 hover:scale-105 transition-all duration-300"
-                >
-                  Salir
+                  {dict.arena.changeCharacter}
                 </button>
               </div>
             </motion.div>
-          </div>
-        )}
-
-        {exitOpen && (
-          <div className="absolute inset-0 z-[60] flex items-center justify-center rounded-3xl bg-black/75 p-4">
-            <div className="panel neon-border w-full max-w-md rounded-3xl p-6 text-center">
-              <h2 className="text-2xl font-black text-white">
-                ¿Seguro que deseas salir de la partida?
-              </h2>
-
-              <div className="mt-7 grid gap-3 sm:grid-cols-2">
-                <button
-                  onClick={() => {
-                    playHover();
-                    setExitOpen(false);
-                  }}
-                  className="rounded-2xl border border-blue-400 bg-blue-900 px-6 py-4 font-bold text-white hover:scale-105 transition"
-                >
-                  Cancelar
-                </button>
-
-                <button
-                  onClick={leaveRoom}
-                  className="rounded-2xl border border-red-300 bg-red-500 px-6 py-4 font-bold text-white hover:scale-105 transition"
-                >
-                  Confirmar
-                </button>
-              </div>
-            </div>
           </div>
         )}
       </div>

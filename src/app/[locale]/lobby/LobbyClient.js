@@ -23,7 +23,7 @@ function normalizeCode(value) {
   return value.trim().toUpperCase();
 }
 
-export default function LobbyClient() {
+export default function LobbyClient({ dict }) {
   const router = useRouter();
 
   const [playBtn] = useSound("/sounds/btnSound-3.wav", {
@@ -71,7 +71,7 @@ export default function LobbyClient() {
         setError(
           roomError?.message ||
             playersError?.message ||
-            "No se pudo cargar la sala",
+            dict.lobby.errors.loadRoom,
         );
         return;
       }
@@ -80,7 +80,7 @@ export default function LobbyClient() {
       setPlayers(playerData || []);
 
       if (roomData.status === "select") {
-        router.push("/select-online");
+        router.push(`/${dict.locale}/select-online`);
       }
 
       if (roomData.status === "ended") {
@@ -88,10 +88,10 @@ export default function LobbyClient() {
         setSession(null);
         setRoom(null);
         setPlayers([]);
-        setError("La sala terminó. Genera otro código para jugar de nuevo.");
+        setError(dict.lobby.errors.roomEnded);
       }
     },
-    [router],
+    [router, dict.locale],
   );
 
   useEffect(() => {
@@ -185,7 +185,7 @@ export default function LobbyClient() {
     const createdRoom = data?.[0];
 
     if (!createdRoom) {
-      setError("No se pudo crear la sala.");
+      setError(dict.lobby.errors.createRoom);
       return;
     }
 
@@ -221,7 +221,7 @@ export default function LobbyClient() {
     const joinedRoom = data?.[0];
 
     if (!joinedRoom) {
-      setError("No se pudo entrar a la sala.");
+      setError(dict.lobby.errors.joinRoom);
       return;
     }
 
@@ -253,7 +253,7 @@ export default function LobbyClient() {
       const text = await navigator.clipboard.readText();
       setJoinCode(text.toUpperCase().slice(0, 6));
     } catch {
-      setError("No se pudo pegar el código");
+      setError(dict.lobby.errors.paste);
     }
   }
 
@@ -322,7 +322,7 @@ export default function LobbyClient() {
     }
 
     clearOnlineSession();
-    router.push("/mode");
+    router.push(`/${dict.locale}/mode`);
   }
 
   return (
@@ -338,29 +338,28 @@ export default function LobbyClient() {
               transition={{ duration: 0.55 }}
               className="text-center text-4xl md:text-5xl font-black text-white drop-shadow-[0_0_14px_rgba(255,255,255,.35)]"
             >
-              Bienvenido al lobby
+              {dict.lobby.title}
             </motion.h1>
 
             <p className="max-w-2xl text-white/70 text-base md:text-lg text-center leading-relaxed">
-              Genera un codigo y compartelo con tu rival, si te compartieron un
-              codigo colocalo para jugar con tu rival
+              {dict.lobby.description}
             </p>
 
             <button
               onClick={() => {
                 playBtn();
-                router.push("/mode");
+                router.push(`/${dict.locale}/mode`);
               }}
               className="px-8 py-3 rounded-2xl bg-blue-900 text-white font-bold border border-blue-400 shadow-[0_0_18px_rgba(59,130,246,.22)] hover:scale-105 hover:shadow-[0_0_22px_rgba(59,130,246,.35)] transition-all duration-300"
             >
-              Modos de juego
+              {dict.lobby.gameModes}
             </button>
 
             <div className="w-full grid gap-5">
               <div className="panel rounded-3xl border border-blue-400/50 p-4 md:p-5">
                 <div className="flex justify-center mb-4">
                   <h2 className="text-white font-black text-center text-2xl">
-                    Sala de juego
+                    {dict.lobby.roomTitle}
                   </h2>
                 </div>
 
@@ -371,13 +370,13 @@ export default function LobbyClient() {
                       disabled={loading || Boolean(room)}
                       className="w-full px-6 py-3 rounded-2xl bg-blue-500 text-white font-bold border border-blue-300 shadow-[0_0_18px_rgba(59,130,246,.25)] hover:scale-105 transition-all disabled:opacity-40"
                     >
-                      Generar código
+                      {dict.lobby.generateCode}
                     </button>
 
                     <input
                       readOnly
                       value={room?.code || ""}
-                      placeholder="Código de partida"
+                      placeholder={dict.lobby.gameCode}
                       className="w-full rounded-2xl border border-blue-400/40 bg-black/25 px-4 py-3 text-center text-white font-black tracking-[.28em] outline-none"
                     />
 
@@ -387,13 +386,13 @@ export default function LobbyClient() {
                       className="min-w-[140px] px-6 py-3 rounded-2xl bg-blue-900 text-white font-bold border border-blue-400 hover:scale-105 transition-all disabled:opacity-40 flex items-center justify-center gap-2"
                     >
                       <HiClipboardDocument className="text-xl" />
-                      {copied ? "Copiado" : "Copiar"}
+                      {copied ? dict.lobby.copied : dict.lobby.copy}
                     </button>
                   </div>
 
                   <div className="grid gap-3 lg:grid-cols-[220px_1fr_auto_auto] lg:items-center">
                     <p className="text-white font-bold text-center lg:text-center whitespace-nowrap">
-                      Ingresar código
+                      {dict.lobby.enterCode}
                     </p>
 
                     <input
@@ -401,7 +400,7 @@ export default function LobbyClient() {
                       onChange={(event) =>
                         setJoinCode(event.target.value.toUpperCase())
                       }
-                      placeholder="Pega el código"
+                      placeholder={dict.lobby.pasteCode}
                       maxLength={6}
                       className="w-full rounded-2xl border border-blue-400/40 bg-black/25 px-4 py-3 text-center text-white font-black tracking-[.28em] outline-none focus:border-blue-300"
                     />
@@ -419,7 +418,7 @@ export default function LobbyClient() {
                       disabled={loading || Boolean(room) || !joinCode.trim()}
                       className="min-w-[140px] px-6 py-3 rounded-2xl bg-blue-500 text-white font-bold border border-blue-300 hover:scale-105 transition-all disabled:opacity-40"
                     >
-                      Ingresar
+                      {dict.lobby.join}
                     </button>
                   </div>
                 </div>
@@ -427,7 +426,7 @@ export default function LobbyClient() {
 
               <div className="panel rounded-3xl border border-blue-400/50 p-4 md:p-5">
                 <h2 className="text-white font-black text-2xl text-center">
-                  Cambia tu nombre
+                  {dict.lobby.changeName}
                 </h2>
 
                 <div className="mt-3 grid gap-3 md:grid-cols-[1fr_auto]">
@@ -435,8 +434,7 @@ export default function LobbyClient() {
                     value={playerName}
                     onChange={(event) => setPlayerName(event.target.value)}
                     placeholder={
-                      currentPlayer?.name ||
-                      "Cambia tu nombre al generar el código"
+                      currentPlayer?.name || dict.lobby.changeNamePlaceholder
                     }
                     className="w-full rounded-2xl border border-blue-400/40 bg-black/25 px-4 py-3 text-white outline-none focus:border-blue-300"
                   />
@@ -447,7 +445,7 @@ export default function LobbyClient() {
                       disabled={!playerName.trim()}
                       className="px-6 py-3 rounded-2xl bg-blue-500 text-white font-bold border border-blue-300 hover:scale-105 transition-all disabled:opacity-40"
                     >
-                      Actualizar
+                      {dict.lobby.update}
                     </button>
                   )}
                 </div>
@@ -462,17 +460,17 @@ export default function LobbyClient() {
 
             <div className="w-full panel rounded-3xl border border-blue-400/40 p-4 md:p-5">
               <h2 className="text-center text-2xl font-black text-white">
-                Lista de jugadores de la partida
+                {dict.lobby.playersList}
               </h2>
 
               <div className="mt-5 overflow-x-auto custom-scroll">
                 <table className="w-full min-w-[640px] border-separate border-spacing-y-2 text-left">
                   <thead>
                     <tr className="text-sm text-white/60 text-center">
-                      <th className="px-3 py-2">Jugador</th>
-                      <th className="px-3 py-2">Nombre</th>
-                      <th className="px-3 py-2">Rol</th>
-                      <th className="px-3 py-2">Acciones</th>
+                      <th className="px-3 py-2">{dict.lobby.player}</th>
+                      <th className="px-3 py-2">{dict.lobby.name}</th>
+                      <th className="px-3 py-2">{dict.lobby.role}</th>
+                      <th className="px-3 py-2">{dict.lobby.actions}</th>
                     </tr>
                   </thead>
 
@@ -487,7 +485,7 @@ export default function LobbyClient() {
                         >
                           <td className="px-3 py-3 font-black">{slot}</td>
                           <td className="px-3 py-3">
-                            {player?.name || "Esperando rival..."}
+                            {player?.name || dict.lobby.waiting}
                           </td>
                           <td className="px-3 py-3">
                             {player ? (
@@ -495,7 +493,9 @@ export default function LobbyClient() {
                                 {player.role === "admin" && (
                                   <HiShieldCheck className="text-blue-300" />
                                 )}
-                                {player.role === "admin" ? "Admin" : "Invitado"}
+                                {player.role === "admin"
+                                  ? dict.lobby.admin
+                                  : dict.lobby.guest}
                               </span>
                             ) : (
                               "-"
@@ -547,8 +547,8 @@ export default function LobbyClient() {
                   className="px-8 py-4 rounded-2xl bg-blue-500 text-white font-black border border-blue-300 shadow-[0_0_22px_rgba(59,130,246,.35)] hover:scale-105 transition-all disabled:opacity-40"
                 >
                   {currentPlayer?.ready_lobby
-                    ? "Cancelar inicio"
-                    : "Iniciar partida"}
+                    ? dict.lobby.cancelReady
+                    : dict.lobby.ready}
                 </button>
 
                 <div className="flex items-center gap-3">
@@ -576,7 +576,7 @@ export default function LobbyClient() {
                 onClick={leaveRoom}
                 className="px-8 py-3 rounded-2xl bg-red-500 text-white font-bold border border-red-300 hover:scale-105 transition-all"
               >
-                Salir de la sala
+                {dict.lobby.leaveRoom}
               </button>
             )}
           </div>
@@ -587,18 +587,18 @@ export default function LobbyClient() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80">
           <div className="panel neon-border rounded-3xl p-8 text-center max-w-sm w-full">
             <h2 className="text-2xl font-black text-white">
-              Te han sacado de la partida
+              {dict.lobby.kicked}
             </h2>
 
             <button
               onClick={() => {
                 playBtn();
                 setKickedModal(false);
-                router.push("/mode");
+                router.push(`/${dict.locale}/mode`);
               }}
               className="mt-6 w-full py-3 rounded-2xl bg-blue-500 text-white font-bold border border-blue-300 hover:scale-105 transition"
             >
-              Aceptar
+              {dict.lobby.accept}
             </button>
           </div>
         </div>

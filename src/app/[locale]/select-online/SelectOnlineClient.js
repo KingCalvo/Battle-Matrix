@@ -18,7 +18,7 @@ function getCharacter(characterId) {
   return characters.find((character) => character.id === characterId) || null;
 }
 
-export default function SelectOnlineClient() {
+export default function SelectOnlineClient({ dict }) {
   const router = useRouter();
 
   const [session, setSession] = useState(null);
@@ -88,31 +88,31 @@ export default function SelectOnlineClient() {
         setError(
           roomError?.message ||
             playersError?.message ||
-            "No se pudo cargar la sala",
+            dict.selectOnline.errorLoading,
         );
         return;
       }
 
       if (roomData.status === "lobby") {
-        router.replace("/lobby");
+        router.replace(`/${dict.locale}/lobby`);
         return;
       }
 
       if (roomData.status === "arena") {
-        router.push("/arena-online");
+        router.push(`/${dict.locale}/arena-online`);
         return;
       }
 
       if (roomData.status === "ended") {
         clearOnlineSession();
-        router.replace("/mode");
+        router.replace(`/${dict.locale}/mode`);
         return;
       }
 
       setRoom(roomData);
       setPlayers(playerData || []);
     },
-    [router],
+    [router, dict.locale],
   );
 
   useEffect(() => {
@@ -120,7 +120,7 @@ export default function SelectOnlineClient() {
     const savedSession = getOnlineSession();
 
     if (!savedSession?.roomId || !savedSession?.playerId) {
-      router.replace("/lobby");
+      router.replace(`/${dict.locale}/lobby`);
 
       return () => {
         active = false;
@@ -136,7 +136,7 @@ export default function SelectOnlineClient() {
     return () => {
       active = false;
     };
-  }, [fetchRoomState, router]);
+  }, [fetchRoomState, router, dict.locale]);
 
   useEffect(() => {
     if (!session?.roomId) return;
@@ -243,7 +243,7 @@ export default function SelectOnlineClient() {
     });
 
     clearOnlineSession();
-    router.push("/mode");
+    router.push(`/${dict.locale}/mode`);
   }
 
   const renderCard = (player, character, num, activeColor) => {
@@ -276,7 +276,7 @@ export default function SelectOnlineClient() {
               <div className="text-7xl opacity-20">?</div>
 
               <p className="mt-4 opacity-50 text-center text-white">
-                Esperando...
+                {dict.selectOnline.waiting}
               </p>
             </>
           )}
@@ -291,7 +291,7 @@ export default function SelectOnlineClient() {
               : "bg-white/5 text-white/45 border border-white/10"
           }`}
         >
-          {isMine ? "Tu personaje" : "Rival"}
+          {isMine ? dict.selectOnline.yourCharacter : dict.selectOnline.rival}
         </div>
       </div>
     );
@@ -301,7 +301,7 @@ export default function SelectOnlineClient() {
     <main className="min-h-screen p-4 md:p-8 flex items-center justify-center">
       <div className="panel neon-border rounded-3xl w-full max-w-[1600px] min-h-[720px] lg:min-h-[780px] xl:min-h-[880px] p-6 relative">
         <h1 className="text-center text-4xl md:text-5xl font-black text-white mb-2 drop-shadow-[0_0_14px_rgba(255,255,255,.35)]">
-          SELECCIÓN DE PERSONAJES
+          {dict.selectOnline.title}
         </h1>
 
         <div className="mt-6 flex flex-col items-center gap-4">
@@ -312,13 +312,13 @@ export default function SelectOnlineClient() {
                 setExitOpen(true);
               }}
               className="p-2 rounded-xl bg-white/5 hover:bg-white/10 transition"
-              title="Salir de la partida"
+              title={dict.selectOnline.leaveGame}
             >
               <HiArrowLeftOnRectangle className="text-sm lg:text-xl text-blue-300" />
             </button>
 
             <p className="tracking-[.18em] text-sm lg:text-base text-white font-bold">
-              Elige el numero de vidas
+              {dict.selectOnline.chooseLives}
             </p>
 
             <button
@@ -360,7 +360,7 @@ export default function SelectOnlineClient() {
 
           {!isAdmin && (
             <p className="text-xs text-white/50">
-              Solo el admin puede cambiar las vidas e iniciar la partida
+              {dict.selectOnline.adminOnly}
             </p>
           )}
 
@@ -370,7 +370,7 @@ export default function SelectOnlineClient() {
               disabled={!isAdmin || !readyToPlay}
               className="px-12 py-4 rounded-2xl bg-blue-500 text-white font-bold text-sm sm:text-base border border-blue-400 shadow-[0_0_22px_rgba(59,130,246,.35)] hover:scale-105 hover:shadow-[0_0_30px_rgba(59,130,246,.55)] transition-all duration-300 disabled:opacity-40"
             >
-              JUGAR
+              {dict.selectOnline.play}
             </button>
           </div>
         </div>
@@ -435,7 +435,7 @@ export default function SelectOnlineClient() {
                     }`}
                   />
 
-                  <p className="mt-3 text-xs">{character.name}</p>
+                  <p className="mt-3 text-[10px]">{character.name}</p>
                 </button>
               );
             })}
@@ -455,7 +455,7 @@ export default function SelectOnlineClient() {
           <div className="absolute inset-0 z-50 flex items-start md:items-center justify-center rounded-3xl bg-black/75 p-4 pt-10 md:pt-4">
             <div className="panel neon-border w-full max-w-md rounded-3xl p-6 text-center">
               <h2 className="text-2xl font-black text-white">
-                ¿Seguro que deseas salir de la partida?
+                {dict.selectOnline.exitTitle}
               </h2>
 
               <div className="mt-7 grid gap-3 sm:grid-cols-2">
@@ -464,16 +464,16 @@ export default function SelectOnlineClient() {
                     playBtn();
                     setExitOpen(false);
                   }}
-                  className="rounded-2xl border border-blue-400 bg-blue-900 px-6 py-4 font-bold text-white hover:scale-105 transition"
+                  className="rounded-2xl border border-red-300 bg-red-500 px-6 py-4 font-bold text-white hover:scale-105 transition"
                 >
-                  Cancelar
+                  {dict.selectOnline.cancel}
                 </button>
 
                 <button
                   onClick={leaveRoom}
-                  className="rounded-2xl border border-red-300 bg-red-500 px-6 py-4 font-bold text-white hover:scale-105 transition"
+                  className="rounded-2xl border border-blue-400 bg-blue-900 px-6 py-4 font-bold text-white hover:scale-105 transition"
                 >
-                  Confirmar
+                  {dict.selectOnline.confirm}
                 </button>
               </div>
             </div>

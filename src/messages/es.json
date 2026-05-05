@@ -1,0 +1,159 @@
+{
+  "home": {
+    "pressKey": "PRESIONA CUALQUIER TECLA",
+    "description": "Entra en la arena, elige tu personaje y domina la batalla.",
+    "play": "JUGAR",
+    "presentedBy": "PRESENTADO POR ENRIQUE CALVO GARCIA"
+  },
+
+  "common": {
+    "changeLanguage": "Cambiar de idioma",
+    "spanish": "Español",
+    "english": "English"
+  },
+
+  "mode": {
+    "title": "Elige el modo de juego",
+    "home": "Inicio",
+    "onlineTitle": "Batalla Online",
+    "onlineDesc": "Crea o únete a una sala",
+    "localTitle": "Arena Local",
+    "localDesc": "Juega en el mismo dispositivo"
+  },
+
+  "localMode": {
+    "title": "Bienvenido al modo local",
+    "subtitle": "Elige cómo quieres jugar",
+    "back": "Modos de juego",
+    "friend": "Jugar contra un amigo",
+    "ai": "Jugar contra la IA"
+  },
+
+  "select": {
+    "title": "SELECCIÓN DE PERSONAJE",
+    "chooseLives": "Elige el número de vidas",
+    "gameMode": "Modo de juego",
+    "play": "JUGAR",
+    "player": "Jugador",
+    "ai": "IA",
+    "waiting": "Esperando...",
+    "chooseCharacter": "Elegir personaje",
+    "difficulty": {
+      "facil": "FÁCIL",
+      "normal": "NORMAL",
+      "dificil": "DIFÍCIL"
+    }
+  },
+
+  "arena": {
+    "battleFor": "Batalla por",
+    "life": "vida",
+    "lives": "vidas",
+    "player": "JUGADOR",
+    "player1": "JUGADOR 1",
+    "player2": "JUGADOR 2",
+    "vs": "VS",
+    "round": "ROUND",
+    "fight": "FIGHT",
+    "turnOf": "Turno de",
+    "completedMatch": "Partida completada",
+    "completedRound": "Ronda completada",
+    "loading": "Cargando...",
+    "exit": "Salir",
+    "timeoutLose": "perdió un corazón",
+    "perfectWin": "PERFECT WIN",
+    "fatality": "FATALITY",
+    "winnerGame": "GANADOR DEL JUEGO",
+    "rematch": "Revancha",
+    "changeCharacter": "Cambiar personaje",
+    "seconds": "s",
+    "iaEasy": "IA FÁCIL",
+    "iaNormal": "IA NORMAL",
+    "iaHard": "IA DIFÍCIL"
+  },
+
+  "arenaOnline": {
+    "battleFor": "Batalla por",
+    "life": "vida",
+    "lives": "vidas",
+    "round": "ROUND",
+    "fight": "FIGHT",
+    "turnOf": "Turno de",
+    "yourTurn": "Tu turno",
+    "waiting": "Esperando rival",
+    "exitGame": "Salir de la partida",
+    "seconds": "s",
+    "draw": "EMPATE",
+    "perfectWin": "PERFECT WIN",
+    "fatality": "FATALITY",
+    "winnerGame": "GANADOR DEL JUEGO",
+    "rematch": "Revancha",
+    "changeCharacters": "Cambiar personajes",
+    "exit": "Salir",
+    "confirmExit": "¿Seguro que deseas salir de la partida?",
+    "cancel": "Cancelar",
+    "confirm": "Confirmar",
+    "timeoutLose": "perdió un corazón",
+    "loadError": "No se pudo cargar la sala"
+  },
+
+  "selectOnline": {
+    "title": "SELECCIÓN DE PERSONAJES",
+    "chooseLives": "Elige el número de vidas",
+    "play": "JUGAR",
+    "waiting": "Esperando...",
+    "yourCharacter": "Tu personaje",
+    "rival": "Rival",
+    "adminOnly": "Solo el admin puede cambiar las vidas e iniciar la partida",
+    "exitTitle": "¿Seguro que deseas salir de la partida?",
+    "cancel": "Cancelar",
+    "confirm": "Confirmar",
+    "leaveGame": "Salir de la partida",
+    "errorLoading": "No se pudo cargar la sala"
+  },
+
+  "lobby": {
+    "title": "Bienvenido al lobby",
+    "description": "Genera un código y compártelo con tu rival, si te compartieron un código colócalo para jugar con tu rival",
+    "gameModes": "Modos de juego",
+
+    "roomTitle": "Sala de juego",
+    "generateCode": "Generar código",
+    "gameCode": "Código de partida",
+    "copy": "Copiar",
+    "copied": "Copiado",
+
+    "enterCode": "Ingresar código",
+    "pasteCode": "Pega el código",
+    "join": "Ingresar",
+
+    "changeName": "Cambia tu nombre",
+    "changeNamePlaceholder": "Cambia tu nombre al generar el código",
+    "update": "Actualizar",
+
+    "playersList": "Lista de jugadores de la partida",
+    "player": "Jugador",
+    "name": "Nombre",
+    "role": "Rol",
+    "actions": "Acciones",
+    "waiting": "Esperando rival...",
+    "admin": "Admin",
+    "guest": "Invitado",
+
+    "ready": "Iniciar partida",
+    "cancelReady": "Cancelar inicio",
+
+    "leaveRoom": "Salir de la sala",
+
+    "kicked": "Te han sacado de la partida",
+    "accept": "Aceptar",
+
+    "errors": {
+      "loadRoom": "No se pudo cargar la sala",
+      "roomEnded": "La sala terminó. Genera otro código para jugar de nuevo.",
+      "createRoom": "No se pudo crear la sala.",
+      "joinRoom": "No se pudo entrar a la sala.",
+      "paste": "No se pudo pegar el código"
+    }
+  }
+}

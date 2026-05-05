@@ -6,8 +6,9 @@ import useSound from "use-sound";
 import { Howler } from "howler";
 import { motion, AnimatePresence } from "framer-motion";
 import { GiBatBlade } from "react-icons/gi";
+import LanguageSwitcher from "@/components/LanguageSwitcher";
 
-export default function HomeClient() {
+export default function HomeClient({ dict }) {
   const router = useRouter();
   const [booted, setBooted] = useState(false);
 
@@ -22,6 +23,7 @@ export default function HomeClient() {
           await Howler.ctx?.resume();
         }
 
+        window.dispatchEvent(new Event("user-interacted"));
         setBooted(true);
       } catch (error) {
         console.log("Audio bloqueado");
@@ -63,7 +65,7 @@ export default function HomeClient() {
               <GiBatBlade className="mx-auto text-[6rem] text-blue-300 drop-shadow-[0_0_24px_rgba(59,130,246,.55)]" />
 
               <p className="mt-8 text-white text-xl md:text-3xl font-black tracking-[.28em]">
-                PRESIONA CUALQUIER TECLA
+                {dict.home.pressKey}
               </p>
 
               <p className="mt-3 text-blue-300 tracking-[.22em] text-xs md:text-sm">
@@ -100,23 +102,27 @@ export default function HomeClient() {
             </motion.h1>
 
             <p className="max-w-2xl text-white/80 text-sm text-center md:text-base leading-relaxed">
-              Entra en la arena, elige tu personaje y domina la batalla.
+              {dict.home.description}
             </p>
 
             <button
               onClick={() => {
                 playSelect();
                 setTimeout(() => {
-                  router.push("/mode");
+                  router.push(`/${dict.locale}/mode`);
                 }, 120);
               }}
               className="mt-5 px-10 py-4 rounded-2xl bg-blue-900 text-white font-black border border-blue-400 shadow-[0_0_18px_rgba(59,130,246,.22)] hover:scale-105 hover:shadow-[0_0_22px_rgba(59,130,246,.35)] transition-all duration-300"
             >
-              PLAY
+              {dict.home.play}
             </button>
 
             <div className="mt-8 flex items-center gap-3 text-[10px] sm:text-xs tracking-[.28em] text-white/60 whitespace-nowrap">
-              <span>PRESENTADO POR ENRIQUE CALVO GARCIA</span>
+              <LanguageSwitcher locale={dict.locale} dict={dict} />
+            </div>
+
+            <div className="mt-4 flex items-center gap-3 text-[10px] sm:text-xs tracking-[.28em] text-white/60 whitespace-nowrap">
+              <span>{dict.home.presentedBy}</span>
             </div>
           </div>
         </div>

@@ -15,7 +15,7 @@ import {
   GiArtificialIntelligence,
 } from "react-icons/gi";
 
-export default function SelectClient() {
+export default function SelectClient({ dict }) {
   const router = useRouter();
 
   const {
@@ -65,7 +65,7 @@ export default function SelectClient() {
   const startBattle = () => {
     if (!player1 || !player2) return;
     resetMatch();
-    router.push("/arena");
+    router.push(`/${dict.locale}/arena`);
   };
 
   const pickRandomAI = (takenId) => {
@@ -118,7 +118,7 @@ export default function SelectClient() {
       ${activeColor}`}
       >
         <p className="tracking-[.3em] text-sm text-white text-center">
-          {isAI ? "IA" : `Jugador ${num}`}
+          {isAI ? dict.select.ai : `${dict.select.player} ${num}`}
         </p>
 
         <div className="mt-5 flex flex-col items-center justify-center min-h-[180px]">
@@ -139,7 +139,7 @@ export default function SelectClient() {
               <div className="text-7xl opacity-20">?</div>
 
               <p className="mt-4 opacity-50 text-center text-white">
-                Esperando...
+                {dict.select.waiting}
               </p>
             </>
           )}
@@ -154,7 +154,7 @@ export default function SelectClient() {
                 : "bg-red-500 text-white border border-red-200"
             }`}
           >
-            Elegir personaje
+            {dict.select.chooseCharacter}
           </div>
         )}
 
@@ -175,7 +175,7 @@ export default function SelectClient() {
                     : "bg-white/5 text-white border-white/10 hover:bg-white/10"
                 }`}
               >
-                {level.toUpperCase()}
+                {dict.select.difficulty[level]}
               </button>
             ))}
           </div>
@@ -188,20 +188,20 @@ export default function SelectClient() {
     <main className="min-h-screen p-4 md:p-8 flex items-center justify-center">
       <div className="panel neon-border rounded-3xl w-full max-w-[1600px] min-h-[720px] lg:min-h-[780px] xl:min-h-[880px] p-6">
         <h1 className="text-center text-4xl md:text-5xl font-black text-white mb-2 drop-shadow-[0_0_14px_rgba(255,255,255,.35)]">
-          SELECCIÓN DE PERSONAJE
+          {dict.select.title}
         </h1>
 
         <div className="mt-6 flex flex-col items-center gap-4">
           <div className="flex items-center gap-3 justify-center flex-wrap">
             <button
-              onClick={() => router.push("/")}
+              onClick={() => router.push(`/${dict.locale}/`)}
               className="p-2 rounded-xl bg-white/5 hover:bg-white/10 transition"
             >
               <HiOutlineHome className="text-sm lg:text-xl text-blue-300" />
             </button>
 
             <p className="tracking-[.18em] text-sm lg:text-base text-white font-bold">
-              Elige el número de vidas
+              {dict.select.chooseLives}
             </p>
 
             <button
@@ -252,12 +252,12 @@ export default function SelectClient() {
                 setPlayer2(null);
 
                 setTimeout(() => {
-                  router.push("/local-mode");
+                  router.push(`/${dict.locale}/local-mode`);
                 }, 140);
               }}
               className="px-8 py-4 rounded-2xl bg-blue-900 text-white font-bold hover:scale-105 hover:shadow-[0_0_18px_rgba(59,130,246,.22)] transition-all duration-300"
             >
-              Modo de juego
+              {dict.select.gameMode}
             </button>
 
             <button
@@ -273,7 +273,7 @@ export default function SelectClient() {
               disabled={!player1 || !player2}
               className="px-12 py-4 rounded-2xl bg-blue-500 text-white font-bold text-sm sm:text-base border border-blue-400 shadow-[0_0_22px_rgba(59,130,246,.35)] hover:scale-105 hover:shadow-[0_0_30px_rgba(59,130,246,.55)] transition-all duration-300 disabled:opacity-40"
             >
-              JUGAR
+              {dict.select.play}
             </button>
           </div>
         </div>
@@ -287,7 +287,7 @@ export default function SelectClient() {
               : "border-gray-700",
           )}
 
-          {/* Grid */}
+          {/* Tablero de personajes */}
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 lg:grid-cols-10 gap-2 content-start max-h-[720px] overflow-y-auto pr-2 p-2 custom-scroll select-grid">
             {characters.map((char) => {
               const Icon = char.icon;
@@ -335,7 +335,7 @@ export default function SelectClient() {
                     }`}
                   />
 
-                  <p className="mt-3 text-xs">{char.name}</p>
+                  <p className="mt-3 text-[10px]">{char.name}</p>
                 </button>
               );
             })}

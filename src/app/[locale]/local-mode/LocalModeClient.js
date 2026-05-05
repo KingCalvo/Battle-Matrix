@@ -10,7 +10,7 @@ import {
   GiArtificialIntelligence,
 } from "react-icons/gi";
 
-export default function LocalModeClient() {
+export default function LocalModeClient({ dict }) {
   const router = useRouter();
 
   const { setGameMode, setPlayer1, setPlayer2 } = useGameStore();
@@ -27,7 +27,7 @@ export default function LocalModeClient() {
     setPlayer2(null);
 
     setTimeout(() => {
-      router.push("/select");
+      router.push(`/${dict.locale}/select`);
     }, 140);
   };
 
@@ -39,7 +39,7 @@ export default function LocalModeClient() {
     setPlayer2(null);
 
     setTimeout(() => {
-      router.push("/select");
+      router.push(`/${dict.locale}/select`);
     }, 140);
   };
 
@@ -56,21 +56,21 @@ export default function LocalModeClient() {
               transition={{ duration: 0.55 }}
               className="text-center text-4xl md:text-5xl font-black text-white mb-2 drop-shadow-[0_0_14px_rgba(255,255,255,.35)]"
             >
-              Bienvenido al modo local
+              {dict.localMode.title}
             </motion.h1>
 
             <p className="text-white/70 text-base md:text-lg text-center">
-              Elige cómo quieres jugar
+              {dict.localMode.subtitle}
             </p>
 
             <button
               onClick={() => {
                 playBtn();
-                setTimeout(() => router.push("/mode"), 140);
+                setTimeout(() => router.push(`/${dict.locale}/mode`), 140);
               }}
               className="px-8 py-3 rounded-2xl bg-blue-900 text-white font-bold border border-blue-400 shadow-[0_0_18px_rgba(59,130,246,.22)] hover:scale-105 hover:shadow-[0_0_22px_rgba(59,130,246,.35)] transition-all duration-300"
             >
-              Modos de juego
+              {dict.localMode.back}
             </button>
 
             <div className="grid md:grid-cols-2 gap-6 w-full">
@@ -88,7 +88,7 @@ export default function LocalModeClient() {
                 </div>
 
                 <p className="mt-8 text-2xl font-black text-white text-center">
-                  Jugar contra un amigo
+                  {dict.localMode.friend}
                 </p>
               </motion.button>
 
@@ -105,7 +105,7 @@ export default function LocalModeClient() {
                 </div>
 
                 <p className="mt-8 text-2xl font-black text-white text-center">
-                  Jugar contra la IA
+                  {dict.localMode.ai}
                 </p>
               </motion.button>
             </div>
