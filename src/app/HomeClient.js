@@ -7,13 +7,8 @@ import { Howler } from "howler";
 import { motion, AnimatePresence } from "framer-motion";
 import { GiBatBlade } from "react-icons/gi";
 
-export const metadata = {
-  title: "Inicio | BATTLE MATRIX",
-};
-
 export default function HomeClient() {
   const router = useRouter();
-
   const [booted, setBooted] = useState(false);
 
   const [playSelect] = useSound("/sounds/btnSound-3.wav", {
@@ -24,14 +19,10 @@ export default function HomeClient() {
     const unlock = async () => {
       try {
         if (Howler.ctx?.state !== "running") {
-          await Howler.ctx.resume();
+          await Howler.ctx?.resume();
         }
 
         setBooted(true);
-
-        window.removeEventListener("pointerdown", unlock);
-        window.removeEventListener("keydown", unlock);
-        window.removeEventListener("touchstart", unlock);
       } catch (error) {
         console.log("Audio bloqueado");
       }
@@ -42,16 +33,14 @@ export default function HomeClient() {
     window.addEventListener("touchstart", unlock, { once: true });
 
     return () => {
-      stop();
       window.removeEventListener("pointerdown", unlock);
       window.removeEventListener("keydown", unlock);
       window.removeEventListener("touchstart", unlock);
     };
-  });
+  }, []);
 
   return (
     <main className="min-h-screen px-4 py-6 md:px-8 flex items-center justify-center relative overflow-hidden">
-      {/* Overlay */}
       <AnimatePresence>
         {!booted && (
           <motion.div
@@ -85,7 +74,6 @@ export default function HomeClient() {
         )}
       </AnimatePresence>
 
-      {/* Pantalla principal */}
       <div className="panel neon-border rounded-3xl w-full max-w-4xl relative overflow-hidden scanlines">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(59,130,246,.16),transparent_35%),radial-gradient(circle_at_bottom_right,_rgba(255,0,0,.10),transparent_30%)]" />
 

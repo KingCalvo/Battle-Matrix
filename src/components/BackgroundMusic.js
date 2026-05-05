@@ -5,6 +5,8 @@ import useSound from "use-sound";
 import { Howler } from "howler";
 import { usePathname } from "next/navigation";
 
+const MENU_ROUTES = new Set(["/", "/mode", "/lobby", "/local-mode"]);
+
 export default function BackgroundMusic() {
   const pathname = usePathname();
   const startedRef = useRef(false);
@@ -16,28 +18,47 @@ export default function BackgroundMusic() {
   });
 
   useEffect(() => {
-    const unlock = async () => {
+    const allowed = MENU_ROUTES.has(pathname);
+
+    const startMusic = async () => {
       if (startedRef.current) return;
 
-      if (Howler.ctx?.state !== "running") {
-        await Howler.ctx.resume();
-      }
+      try {
+        if (Howler.ctx?.state !== "running") {
+          await Howler.ctx?.resume();
+        }
 
-      playMusic();
-      startedRef.current = true;
+        if (Howler.ctx?.state === "running") {
+          playMusic();
+          startedRef.current = true;
+        }
+      } catch (error) {
+        console.log("No se pudo iniciar la música global:", error);
+      }
     };
 
-    if (pathname === "/" || pathname === "/mode") {
-      window.addEventListener("pointerdown", unlock);
-      window.addEventListener("keydown", unlock);
-    } else {
+    const handleUserGesture = () => {
+      void startMusic();
+    };
+
+    if (!allowed) {
       stop();
       startedRef.current = false;
+      return;
     }
 
+    if (Howler.ctx?.state === "running") {
+      void startMusic();
+    }
+
+    window.addEventListener("pointerdown", handleUserGesture);
+    window.addEventListener("keydown", handleUserGesture);
+    window.addEventListener("touchstart", handleUserGesture);
+
     return () => {
-      window.removeEventListener("pointerdown", unlock);
-      window.removeEventListener("keydown", unlock);
+      window.removeEventListener("pointerdown", handleUserGesture);
+      window.removeEventListener("keydown", handleUserGesture);
+      window.removeEventListener("touchstart", handleUserGesture);
     };
   }, [pathname, playMusic, stop]);
 

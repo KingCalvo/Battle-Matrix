@@ -12,6 +12,14 @@ export default function ModeClient() {
     volume: 0.3,
   });
 
+  const goOnline = () => {
+    playBtn();
+
+    setTimeout(() => {
+      router.push("/lobby");
+    }, 140);
+  };
+
   const goSelect = () => {
     playBtn();
 
@@ -22,7 +30,6 @@ export default function ModeClient() {
 
   return (
     <main className="min-h-screen px-4 py-6 md:px-8 flex items-center justify-center relative overflow-hidden">
-      {/* Contenedor mismo tamaño que Home */}
       <div className="panel neon-border rounded-3xl w-full max-w-4xl relative overflow-hidden scanlines">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(59,130,246,.16),transparent_35%),radial-gradient(circle_at_bottom_right,_rgba(255,0,0,.10),transparent_30%)]" />
 
@@ -45,7 +52,7 @@ export default function ModeClient() {
                 initial={{ opacity: 0, x: -30 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ duration: 0.45 }}
-                onClick={() => playBtn()}
+                onClick={goOnline}
                 className="panel border border-blue-400 hover:scale-105 transition-all shadow-[0_0_24px_rgba(59,130,246,.25)] rounded-3xl p-8 md:p-10 min-h-[260px] flex flex-col items-center justify-center gap-5"
               >
                 <GiCrossedSwords className="text-7xl text-blue-300" />
@@ -55,7 +62,7 @@ export default function ModeClient() {
                 </h2>
 
                 <p className="text-white/60 text-sm text-center">
-                  Próximamente
+                  Crea o únete a una sala
                 </p>
               </motion.button>
 
