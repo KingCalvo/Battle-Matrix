@@ -32,6 +32,12 @@ export async function generateMetadata({ params }) {
 
     description,
 
+    icons: {
+      icon: "/icon.png",
+      shortcut: "/icon.png",
+      apple: "/icon.png",
+    },
+
     openGraph: {
       title,
 
