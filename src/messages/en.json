@@ -12,6 +12,16 @@
     "english": "English"
   },
 
+  "metadata": {
+    "arena": "Battle Arena",
+    "select": "Character Selection",
+    "localMode": "Local Game Mode",
+    "lobby": "Online Lobby",
+    "selectOnline": "Online Character Selection",
+    "arenaOnline": "Online Arena",
+    "mode": "Choose Game Mode"
+  },
+
   "mode": {
     "title": "Choose Game Mode",
     "home": "Home",

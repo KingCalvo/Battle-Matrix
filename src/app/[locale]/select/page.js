@@ -1,9 +1,14 @@
 import SelectClient from "./SelectClient";
 import { getDictionary } from "@/lib/getDictionary";
 
-export const metadata = {
-  title: "Selección de personajes",
-};
+export async function generateMetadata({ params }) {
+  const { locale } = await params;
+  const dict = await getDictionary(locale);
+
+  return {
+    title: dict.metadata.select,
+  };
+}
 
 export default async function Page({ params }) {
   const { locale } = await params;
