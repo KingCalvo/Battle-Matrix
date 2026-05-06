@@ -60,19 +60,21 @@ export default function LanguageSwitcher({ locale, dict }) {
   };
 
   return (
-    <div className="flex flex-wrap items-center gap-3 text-sm">
-      <span className="text-white/70">{dict.common.changeLanguage}</span>
+    <div className="flex flex-col items-center gap-3 text-sm lg:flex-row lg:items-center">
+      <span className="text-white/70 text-center lg:text-left">
+        {dict.common.changeLanguage}
+      </span>
 
-      <div className="flex items-center gap-2">
+      <div className="flex items-center justify-center gap-2">
         <button
           type="button"
           onClick={() => changeLanguage("es")}
           className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 transition
-            ${
-              locale === "es"
-                ? "border-blue-400 bg-blue-500/20 text-white shadow-[0_0_20px_rgba(59,130,246,.25)]"
-                : "border-white/15 bg-white/5 text-white/75 hover:bg-white/10"
-            }`}
+          ${
+            locale === "es"
+              ? "border-blue-400 bg-blue-500/20 text-white shadow-[0_0_20px_rgba(59,130,246,.25)]"
+              : "border-white/15 bg-white/5 text-white/75 hover:bg-white/10"
+          }`}
         >
           <FlagMX />
           <span>{dict.common.spanish}</span>
@@ -82,11 +84,11 @@ export default function LanguageSwitcher({ locale, dict }) {
           type="button"
           onClick={() => changeLanguage("en")}
           className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 transition
-            ${
-              locale === "en"
-                ? "border-blue-400 bg-blue-500/20 text-white shadow-[0_0_20px_rgba(59,130,246,.25)]"
-                : "border-white/15 bg-white/5 text-white/75 hover:bg-white/10"
-            }`}
+          ${
+            locale === "en"
+              ? "border-blue-400 bg-blue-500/20 text-white shadow-[0_0_20px_rgba(59,130,246,.25)]"
+              : "border-white/15 bg-white/5 text-white/75 hover:bg-white/10"
+          }`}
         >
           <FlagUS />
           <span>{dict.common.english}</span>
