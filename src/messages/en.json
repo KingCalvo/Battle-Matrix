@@ -129,7 +129,9 @@
 
     "gameModes": "Game Modes",
 
-    "roomTitle": "Game Room",
+    "roomTitle1": "Create a game room",
+    "roomTitle2": "Join a room",
+
     "generateCode": "Generate Code",
     "gameCode": "Game Code",
     "copy": "Copy",
@@ -140,7 +142,7 @@
     "join": "Join",
 
     "changeName": "Change your name",
-    "changeNamePlaceholder": "Change your name when creating the room",
+    "changeNamePlaceholder": "Change your name",
     "update": "Update",
 
     "playersList": "Players in the match",

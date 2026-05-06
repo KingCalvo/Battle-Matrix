@@ -128,7 +128,8 @@
     "description": "Genera un código y compártelo con tu rival, si te compartieron un código colócalo para jugar con tu rival",
     "gameModes": "Modos de juego",
 
-    "roomTitle": "Sala de juego",
+    "roomTitle1": "Crear una sala de juego",
+    "roomTitle2": "Entrar a una sala",
     "generateCode": "Generar código",
     "gameCode": "Código de partida",
     "copy": "Copiar",
@@ -139,7 +140,7 @@
     "join": "Ingresar",
 
     "changeName": "Cambia tu nombre",
-    "changeNamePlaceholder": "Cambia tu nombre al generar el código",
+    "changeNamePlaceholder": "Cambia tu nombre",
     "update": "Actualizar",
 
     "playersList": "Lista de jugadores de la partida",

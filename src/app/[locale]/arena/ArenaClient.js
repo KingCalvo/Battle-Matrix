@@ -323,10 +323,21 @@ export default function ArenaClient({ dict }) {
   const resetRound = useCallback(() => {
     setBoard(emptyBoard);
     setWinner(null);
+
+    setRound((prevRound) => {
+      const nextRound = prevRound + 1;
+
+      // Round impar: empieza jugador 1
+      // Round par: empieza jugador 2 / IA
+      const nextTurn = nextRound % 2 === 1 ? 1 : 2;
+
+      setTurn(nextTurn);
+
+      return nextRound;
+    });
+
     setLocked(false);
-    setTurn(1);
     setTimeLeft(15);
-    setRound((r) => r + 1);
     setShowRoundFx(true);
     setTimeoutText("");
   }, []);

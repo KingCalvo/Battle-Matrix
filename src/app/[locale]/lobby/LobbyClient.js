@@ -359,11 +359,11 @@ export default function LobbyClient({ dict }) {
               <div className="panel rounded-3xl border border-blue-400/50 p-4 md:p-5">
                 <div className="flex justify-center mb-4">
                   <h2 className="text-white font-black text-center text-2xl">
-                    {dict.lobby.roomTitle}
+                    {dict.lobby.roomTitle1}
                   </h2>
                 </div>
 
-                <div className="grid gap-4">
+                <div className="grid gap-4 mt-6">
                   <div className="grid gap-3 lg:grid-cols-[220px_1fr_auto] lg:items-center">
                     <button
                       onClick={createRoom}
@@ -389,7 +389,19 @@ export default function LobbyClient({ dict }) {
                       {copied ? dict.lobby.copied : dict.lobby.copy}
                     </button>
                   </div>
+                </div>
+              </div>
+            </div>
 
+            <div className="w-full grid gap-5">
+              <div className="panel rounded-3xl border border-blue-400/50 p-4 md:p-5">
+                <div className="flex justify-center mb-4">
+                  <h2 className="text-white font-black text-center text-2xl">
+                    {dict.lobby.roomTitle2}
+                  </h2>
+                </div>
+
+                <div className="grid gap-4 mt-6">
                   <div className="grid gap-3 lg:grid-cols-[220px_1fr_auto_auto] lg:items-center">
                     <p className="text-white font-bold text-center lg:text-center whitespace-nowrap">
                       {dict.lobby.enterCode}
@@ -423,33 +435,34 @@ export default function LobbyClient({ dict }) {
                   </div>
                 </div>
               </div>
+              {room && (
+                <div className="panel rounded-3xl border border-blue-400/50 p-4 md:p-5">
+                  <h2 className="text-white font-black text-2xl text-center">
+                    {dict.lobby.changeName}
+                  </h2>
 
-              <div className="panel rounded-3xl border border-blue-400/50 p-4 md:p-5">
-                <h2 className="text-white font-black text-2xl text-center">
-                  {dict.lobby.changeName}
-                </h2>
+                  <div className="mt-3 grid gap-3 md:grid-cols-[1fr_auto]">
+                    <input
+                      value={playerName}
+                      onChange={(event) => setPlayerName(event.target.value)}
+                      placeholder={
+                        currentPlayer?.name || dict.lobby.changeNamePlaceholder
+                      }
+                      className="w-full rounded-2xl border border-blue-400/40 bg-black/25 px-4 py-3 text-white outline-none focus:border-blue-300"
+                    />
 
-                <div className="mt-3 grid gap-3 md:grid-cols-[1fr_auto]">
-                  <input
-                    value={playerName}
-                    onChange={(event) => setPlayerName(event.target.value)}
-                    placeholder={
-                      currentPlayer?.name || dict.lobby.changeNamePlaceholder
-                    }
-                    className="w-full rounded-2xl border border-blue-400/40 bg-black/25 px-4 py-3 text-white outline-none focus:border-blue-300"
-                  />
-
-                  {currentPlayer && (
-                    <button
-                      onClick={updateName}
-                      disabled={!playerName.trim()}
-                      className="px-6 py-3 rounded-2xl bg-blue-500 text-white font-bold border border-blue-300 hover:scale-105 transition-all disabled:opacity-40"
-                    >
-                      {dict.lobby.update}
-                    </button>
-                  )}
+                    {currentPlayer && (
+                      <button
+                        onClick={updateName}
+                        disabled={!playerName.trim()}
+                        className="px-6 py-3 rounded-2xl bg-blue-500 text-white font-bold border border-blue-300 hover:scale-105 transition-all disabled:opacity-40"
+                      >
+                        {dict.lobby.update}
+                      </button>
+                    )}
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
 
             {error && (
