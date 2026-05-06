@@ -90,6 +90,13 @@ export default function ArenaOnlineClient({ dict }) {
   const roundFxKeyRef = useRef("");
   const moveLockRef = useRef(false);
   const rematchResettingRef = useRef(false);
+  const tieResetKeyRef = useRef("");
+  const timeoutLoseText = dict.arenaOnline.timeoutLose;
+
+  const roomId = room?.id;
+  const roomRound = room?.round;
+  const roomWinner = room?.winner;
+  const roomMatchWinner = room?.match_winner;
 
   const [playHover] = useSound("/sounds/btnSound.mp3", {
     volume: 0.25,
@@ -324,9 +331,9 @@ export default function ArenaOnlineClient({ dict }) {
   }, [introOpen]);
 
   useEffect(() => {
-    if (!room?.id || room.winner !== null || room.match_winner) return;
+    if (!roomId || roomWinner !== null || roomMatchWinner) return;
 
-    const roundFxKey = `${room.id}-${room.round}-${introOpen ? "intro" : "play"}`;
+    const roundFxKey = `${roomId}-${roomRound}-${introOpen ? "intro" : "play"}`;
 
     if (roundFxKeyRef.current === roundFxKey) return;
     roundFxKeyRef.current = roundFxKey;
@@ -344,7 +351,71 @@ export default function ArenaOnlineClient({ dict }) {
     return () => {
       clearTimeout(roundFxRef.current);
     };
-  }, [room?.id, room?.round, room?.winner, room?.match_winner, introOpen]);
+  }, [roomId, roomRound, roomWinner, roomMatchWinner, introOpen]);
+
+  useEffect(() => {
+    if (
+      !roomId ||
+      roomWinner === null ||
+      roomWinner === undefined ||
+      roomWinner === 0 ||
+      roomMatchWinner ||
+      !session?.playerId
+    ) {
+      return;
+    }
+
+    const resetKey = `${roomId}-${roomRound}-${roomWinner}`;
+
+    if (resetRoundKeyRef.current === resetKey) return;
+
+    resetRoundKeyRef.current = resetKey;
+
+    playWin();
+
+    clearTimeout(resetRoundRef.current);
+
+    resetRoundRef.current = setTimeout(async () => {
+      const { error: rpcError } = await supabase.rpc("reset_online_round", {
+        player_id_arg: session.playerId,
+      });
+
+      if (rpcError) {
+        resetRoundKeyRef.current = "";
+        setError(rpcError.message);
+      }
+    }, 1800);
+  }, [
+    playWin,
+    roomId,
+    roomRound,
+    roomWinner,
+    roomMatchWinner,
+    session?.playerId,
+  ]);
+
+  useEffect(() => {
+    if (!roomId || roomWinner !== 0 || roomMatchWinner || !session?.playerId) {
+      return;
+    }
+
+    const tieKey = `${roomId}-${roomRound}-tie`;
+
+    if (tieResetKeyRef.current === tieKey) return;
+    tieResetKeyRef.current = tieKey;
+
+    clearTimeout(resetRoundRef.current);
+    resetRoundRef.current = setTimeout(async () => {
+      const { error: rpcError } = await supabase.rpc("reset_online_round", {
+        player_id_arg: session.playerId,
+      });
+
+      if (rpcError) {
+        tieResetKeyRef.current = "";
+        setError(rpcError.message);
+      }
+    }, 1300);
+  }, [roomId, roomRound, roomWinner, roomMatchWinner, session?.playerId]);
 
   useEffect(() => {
     if (introOpen || rematchResettingRef.current) return;
@@ -402,43 +473,6 @@ export default function ArenaOnlineClient({ dict }) {
     stopCinematic,
     stopMusic,
     stopWinnerTheme,
-  ]);
-
-  useEffect(() => {
-    if (
-      !room ||
-      room.winner === null ||
-      room.winner === undefined ||
-      room.match_winner ||
-      !session?.playerId
-    ) {
-      return;
-    }
-
-    const resetKey = `${room.id}-${room.round}-${room.winner}`;
-
-    if (resetRoundKeyRef.current === resetKey) return;
-
-    resetRoundKeyRef.current = resetKey;
-
-    if (room.winner !== 0) {
-      playWin();
-    }
-
-    clearTimeout(resetRoundRef.current);
-    resetRoundRef.current = setTimeout(async () => {
-      await supabase.rpc("reset_online_round", {
-        player_id_arg: session.playerId,
-      });
-    }, 1800);
-  }, [
-    playWin,
-    room,
-    room?.id,
-    room?.round,
-    room?.winner,
-    room?.match_winner,
-    session?.playerId,
   ]);
 
   useEffect(() => {
@@ -515,7 +549,7 @@ export default function ArenaOnlineClient({ dict }) {
       const loserName = room.turn === 1 ? player1?.name : player2?.name;
 
       Promise.resolve().then(() => {
-        setTimeoutText(`${loserName} ${dict.arenaOnline.timeoutLose}`);
+        setTimeoutText(`${loserName} ${timeoutLoseText}`);
       });
 
       if (session?.playerId && !timeoutLossRef.current) {
@@ -546,6 +580,8 @@ export default function ArenaOnlineClient({ dict }) {
     return () => clearTimeout(timerRef.current);
   }, [
     introOpen,
+    showRoundFx,
+    timeoutLoseText,
     player1?.name,
     player2?.name,
     room,
@@ -644,6 +680,10 @@ export default function ArenaOnlineClient({ dict }) {
     setShowRoundFx(true);
     setIntroOpen(true);
     setIntroStep("ROUND 1");
+
+    resetRoundKeyRef.current = "";
+    tieResetKeyRef.current = "";
+    roundFxKeyRef.current = "";
   }
 
   async function changeCharacters() {
@@ -782,7 +822,7 @@ export default function ArenaOnlineClient({ dict }) {
             <div className="grid grid-cols-[1fr_auto_1fr] items-start gap-2 sm:gap-4">
               <div
                 className={`rounded-3xl p-3 sm:p-4 border w-full max-w-[220px] mx-auto transition-all duration-500 ${
-                  room.hp1 === 1
+                  room.lives_to_win > 1 && room.hp1 === 1
                     ? "border-red-500 bg-red-500/10 animate-pulse shadow-[0_0_28px_rgba(255,0,0,.45)] scale-105"
                     : room.turn === 1 &&
                         room.winner === null &&
@@ -868,7 +908,7 @@ export default function ArenaOnlineClient({ dict }) {
 
               <div
                 className={`rounded-3xl p-3 sm:p-4 border w-full max-w-[220px] mx-auto transition-all duration-500 ${
-                  room.hp2 === 1
+                  room.lives_to_win > 1 && room.hp2 === 1
                     ? "border-red-500 bg-red-500/10 animate-pulse shadow-[0_0_28px_rgba(255,0,0,.45)] scale-105"
                     : room.turn === 2 &&
                         room.winner === null &&
