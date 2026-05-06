@@ -88,6 +88,7 @@
     "fatality": "FATALITY",
     "winnerGame": "GANADOR DEL JUEGO",
     "rematch": "Revancha",
+    "waitingRematch": "ESPERANDO RIVAL...",
     "changeCharacters": "Cambiar personajes",
     "exit": "Salir",
     "confirmExit": "¿Seguro que deseas salir de la partida?",

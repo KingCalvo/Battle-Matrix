@@ -88,6 +88,7 @@
     "fatality": "FATALITY",
     "winnerGame": "GAME WINNER",
     "rematch": "Rematch",
+    "waitingRematch": "WAITING PLAYER...",
     "changeCharacters": "Change characters",
     "exit": "Exit",
     "confirmExit": "Are you sure you want to leave the match?",

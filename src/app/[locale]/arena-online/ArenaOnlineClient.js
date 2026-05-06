@@ -87,7 +87,9 @@ export default function ArenaOnlineClient({ dict }) {
   const fatalityTimeoutRef = useRef(null);
   const impactTimeoutRef = useRef(null);
   const resetRoundKeyRef = useRef("");
+  const roundFxKeyRef = useRef("");
   const moveLockRef = useRef(false);
+  const rematchResettingRef = useRef(false);
 
   const [playHover] = useSound("/sounds/btnSound.mp3", {
     volume: 0.25,
@@ -158,6 +160,12 @@ export default function ArenaOnlineClient({ dict }) {
     [players, session],
   );
 
+  const rematchP1Ready = room?.rematch_p1 || false;
+  const rematchP2Ready = room?.rematch_p2 || false;
+
+  const myRematchReady =
+    currentPlayer?.slot === 1 ? rematchP1Ready : rematchP2Ready;
+
   const player1Character = getCharacter(player1?.character_id);
   const player2Character = getCharacter(player2?.character_id);
   const board = Array.isArray(room?.board) ? room.board : Array(9).fill(null);
@@ -168,7 +176,8 @@ export default function ArenaOnlineClient({ dict }) {
     room?.turn === currentPlayer.slot &&
     room?.winner === null &&
     !room?.match_winner &&
-    !introOpen;
+    !introOpen &&
+    !showRoundFx;
 
   const currentTurnName = room?.turn === 1 ? player1?.name : player2?.name;
   const matchWinnerPlayer =
@@ -229,6 +238,13 @@ export default function ArenaOnlineClient({ dict }) {
 
       setRoom(roomData);
       setPlayers(playerData || []);
+      if (
+        roomData.status === "arena" &&
+        roomData.winner === null &&
+        roomData.match_winner === null
+      ) {
+        rematchResettingRef.current = false;
+      }
       moveLockRef.current = false;
     },
     [router, dict.locale],
@@ -310,16 +326,15 @@ export default function ArenaOnlineClient({ dict }) {
   useEffect(() => {
     if (!room?.id || room.winner !== null || room.match_winner) return;
 
-    let active = true;
+    const roundFxKey = `${room.id}-${room.round}-${introOpen ? "intro" : "play"}`;
+
+    if (roundFxKeyRef.current === roundFxKey) return;
+    roundFxKeyRef.current = roundFxKey;
 
     clearTimeout(roundFxRef.current);
 
-    Promise.resolve().then(() => {
-      if (!active) return;
-
-      setShowRoundFx(true);
-      setTimeoutText("");
-    });
+    setShowRoundFx(true);
+    setTimeoutText("");
 
     roundFxRef.current = setTimeout(() => {
       setShowRoundFx(false);
@@ -327,12 +342,13 @@ export default function ArenaOnlineClient({ dict }) {
     }, 1200);
 
     return () => {
-      active = false;
       clearTimeout(roundFxRef.current);
     };
-  }, [room?.id, room?.round, room?.winner, room?.match_winner]);
+  }, [room?.id, room?.round, room?.winner, room?.match_winner, introOpen]);
 
   useEffect(() => {
+    if (introOpen || rematchResettingRef.current) return;
+
     let active = true;
 
     Promise.resolve().then(() => {
@@ -340,14 +356,13 @@ export default function ArenaOnlineClient({ dict }) {
 
       setTimeLeft(15);
       setTimeoutText("");
+      timeoutLossRef.current = false;
     });
-
-    timeoutLossRef.current = false;
 
     return () => {
       active = false;
     };
-  }, [room?.round, room?.turn]);
+  }, [room?.round, room?.turn, room?.winner, room?.match_winner, introOpen]);
 
   useEffect(() => {
     if (!musicOn) {
@@ -427,6 +442,8 @@ export default function ArenaOnlineClient({ dict }) {
   ]);
 
   useEffect(() => {
+    if (introOpen || rematchResettingRef.current) return;
+
     if (!room?.match_winner) {
       fatalityShownRef.current = false;
 
@@ -467,7 +484,7 @@ export default function ArenaOnlineClient({ dict }) {
       clearTimeout(fatalityTimeoutRef.current);
       clearTimeout(impactTimeoutRef.current);
     };
-  }, [perfectWinner, playFatality, playImpact, room?.match_winner]);
+  }, [introOpen, perfectWinner, playFatality, playImpact, room?.match_winner]);
 
   useEffect(() => {
     const checkMobile = () => {
@@ -483,7 +500,16 @@ export default function ArenaOnlineClient({ dict }) {
   useEffect(() => {
     clearTimeout(timerRef.current);
 
-    if (introOpen || !room || room.winner !== null || room.match_winner) return;
+    if (
+      introOpen ||
+      showRoundFx ||
+      rematchResettingRef.current ||
+      !room ||
+      room.winner !== null ||
+      room.match_winner
+    ) {
+      return;
+    }
 
     if (timeLeft <= 0) {
       const loserName = room.turn === 1 ? player1?.name : player2?.name;
@@ -576,25 +602,48 @@ export default function ArenaOnlineClient({ dict }) {
   }
 
   async function rematchBattle() {
-    if (!session?.playerId) return;
+    if (!session?.playerId || myRematchReady) return;
 
     playHover();
     setError("");
 
-    const { error: rpcError } = await supabase.rpc("rematch_online_game", {
-      player_id_arg: session.playerId,
-    });
+    const { data, error: rpcError } = await supabase.rpc(
+      "rematch_online_game",
+      {
+        player_id_arg: session.playerId,
+      },
+    );
 
     if (rpcError) {
       setError(rpcError.message);
       return;
     }
 
+    // Solo cuando los dos ya aceptaron
+    if (data !== true) {
+      return;
+    }
+
+    rematchResettingRef.current = true;
+    timeoutLossRef.current = false;
+    moveLockRef.current = false;
+    fatalityShownRef.current = false;
+
+    clearTimeout(timerRef.current);
+    clearTimeout(musicTimeoutRef.current);
+    clearTimeout(roundFxRef.current);
+    clearTimeout(fatalityTimeoutRef.current);
+    clearTimeout(impactTimeoutRef.current);
+
+    setFatalityOpen(false);
+    setFatalityWinner(null);
+    setFatalityPhase("idle");
+
     setTimeLeft(15);
     setTimeoutText("");
+    setShowRoundFx(true);
     setIntroOpen(true);
     setIntroStep("ROUND 1");
-    fatalityShownRef.current = false;
   }
 
   async function changeCharacters() {
@@ -785,8 +834,7 @@ export default function ArenaOnlineClient({ dict }) {
                 </div>
 
                 <p className="mt-4 text-xs tracking-[.2em] text-white/60">
-                  {dict.arenaOnline.round}
-                  {room.round}
+                  {dict.arenaOnline.round} {room.round}
                 </p>
                 <h1 className="mt-1 text-xl sm:text-3xl font-black text-white">
                   {dict.arenaOnline.turnOf} {currentTurnName}
@@ -1196,12 +1244,44 @@ export default function ArenaOnlineClient({ dict }) {
 
               <p className="mt-2 opacity-80">{dict.arenaOnline.winnerGame}</p>
 
+              <div className="flex items-center justify-center gap-5 mt-5">
+                <div className="flex flex-col items-center gap-2">
+                  <div
+                    className={`w-5 h-5 rounded-full border-2 ${
+                      rematchP1Ready
+                        ? "bg-blue-400 border-blue-300 shadow-[0_0_14px_rgba(59,130,246,.8)]"
+                        : "border-white/30"
+                    }`}
+                  />
+
+                  <p className="text-xs text-blue-300 font-bold">
+                    {player1.name}
+                  </p>
+                </div>
+
+                <div className="flex flex-col items-center gap-2">
+                  <div
+                    className={`w-5 h-5 rounded-full border-2 ${
+                      rematchP2Ready
+                        ? "bg-red-500 border-red-400 shadow-[0_0_14px_rgba(255,0,0,.8)]"
+                        : "border-white/30"
+                    }`}
+                  />
+
+                  <p className="text-xs text-red-400 font-bold">
+                    {player2.name}
+                  </p>
+                </div>
+              </div>
+
               <div className="grid gap-4 mt-8">
                 <button
                   onClick={rematchBattle}
                   className="py-3 sm:py-4 rounded-2xl bg-blue-500 text-white font-bold text-sm sm:text-base border border-blue-400 shadow-[0_0_22px_rgba(59,130,246,.35)] hover:scale-105 hover:shadow-[0_0_30px_rgba(59,130,246,.55)] transition-all duration-300"
                 >
-                  {dict.arenaOnline.rematch}
+                  {myRematchReady
+                    ? dict.arenaOnline.waitingRematch
+                    : dict.arenaOnline.rematch}
                 </button>
 
                 <button
