@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect } from "react";
 import { Howl, Howler } from "howler";
 import { usePathname } from "next/navigation";
 
@@ -8,41 +8,41 @@ const isMenuRoute = (pathname) => {
   return /^\/(es|en)(\/(mode|lobby|local-mode))?$/.test(pathname);
 };
 
+let backgroundMusic = null;
+
 export default function BackgroundMusic() {
   const pathname = usePathname();
-  const startedRef = useRef(false);
-  const musicRef = useRef(null);
 
   useEffect(() => {
     const allowed = isMenuRoute(pathname);
 
     if (!allowed) {
-      if (musicRef.current) {
-        musicRef.current.stop();
+      if (backgroundMusic) {
+        backgroundMusic.stop();
+        backgroundMusic.unload();
+        backgroundMusic = null;
       }
-      startedRef.current = false;
       return;
     }
 
-    if (!musicRef.current) {
-      musicRef.current = new Howl({
+    if (!backgroundMusic) {
+      backgroundMusic = new Howl({
         src: ["/sounds/OTS-Home.mp3"],
-        volume: 0.2,
+        volume: 0.1,
         loop: true,
         preload: true,
       });
     }
 
     const startMusic = async () => {
-      if (startedRef.current) return;
-
       try {
         if (Howler.ctx?.state !== "running") {
           await Howler.ctx?.resume();
         }
 
-        musicRef.current?.play();
-        startedRef.current = true;
+        if (!backgroundMusic.playing()) {
+          backgroundMusic.play();
+        }
       } catch (error) {
         console.log("No se pudo iniciar la música global:", error);
       }
@@ -60,6 +60,8 @@ export default function BackgroundMusic() {
     window.addEventListener("pointerdown", handleUserGesture, { once: true });
     window.addEventListener("keydown", handleUserGesture, { once: true });
     window.addEventListener("touchstart", handleUserGesture, { once: true });
+
+    void startMusic();
 
     return () => {
       window.removeEventListener("user-interacted", handleCustomEvent);

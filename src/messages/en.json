@@ -7,7 +7,7 @@
   },
 
   "common": {
-    "changeLanguage": "Change language",
+    "changeLanguage": "Change language:",
     "spanish": "Spanish",
     "english": "English"
   },
