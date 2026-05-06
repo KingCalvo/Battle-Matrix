@@ -64,11 +64,6 @@ export async function generateMetadata({ params }) {
 
       images: ["https://battle-matrix.vercel.app/logo.png"],
     },
-    icons: {
-      icon: "/fondo.png",
-      shortcut: "/fondo.png",
-      apple: "/fondo.png",
-    },
   };
 }
 
