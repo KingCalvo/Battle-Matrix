@@ -26,7 +26,7 @@ export async function generateMetadata({ params }) {
       : "Strategy game inspired by Tic Tac Toe where you fight in online and local battles using unique characters and multiple lives.";
 
   return {
-    metadataBase: new URL("https://tudominio.com"),
+    metadataBase: new URL("https://battle-matrix.vercel.app"),
 
     title,
 
@@ -37,7 +37,7 @@ export async function generateMetadata({ params }) {
 
       description,
 
-      url: `https://tudominio.com/${locale}`,
+      url: `https://battle-matrix.vercel.app/${locale}`,
 
       siteName: "BATTLE MATRIX",
 
@@ -47,9 +47,9 @@ export async function generateMetadata({ params }) {
 
       images: [
         {
-          url: "/icon.png",
-          width: 1200,
-          height: 1200,
+          url: "https://battle-matrix.vercel.app/logo.png",
+          width: 1254,
+          height: 1254,
           alt: "BATTLE MATRIX",
         },
       ],
@@ -62,13 +62,7 @@ export async function generateMetadata({ params }) {
 
       description,
 
-      images: ["/icon.png"],
-    },
-
-    icons: {
-      icon: "/icon.png",
-      shortcut: "/icon.png",
-      apple: "/icon.png",
+      images: ["https://battle-matrix.vercel.app/logo.png"],
     },
   };
 }
